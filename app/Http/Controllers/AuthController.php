@@ -17,7 +17,7 @@ class AuthController extends Controller
             'password' => 'required',
         ]);
 
-        if ($request->password === 'admin123') {
+        if ($request->password === config('app.admin_password')) {
             session(['is_admin' => true]);
             return redirect()->route('home')->with('success', 'Logged in successfully!');
         }
