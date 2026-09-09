@@ -104,7 +104,7 @@ class PostController extends Controller
         $path = $request->file('upload')->store('editor-images', 'public');
 
         return response()->json([
-            'url' => asset('storage/' . $path)
+            'url' => Storage::url($path)
         ]);
     }
 }
