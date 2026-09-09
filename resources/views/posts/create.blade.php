@@ -1,50 +1,39 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Create New Post</title>
-</head>
-<body>
+@extends('layouts.app')
+
+@section('title', 'Create New Post')
+
+@section('content')
     <h1>Create New Post</h1>
 
     @if ($errors->any())
-        <div style="color: red;">
-            <ul>
+        <article style="border-color: red;">
+            <ul style="color: red; margin: 0;">
                 @foreach ($errors->all() as $error)
                     <li>{{ $error }}</li>
                 @endforeach
             </ul>
-        </div>
+        </article>
     @endif
 
     <form action="{{ route('posts.store') }}" method="POST">
         @csrf
 
-        <div>
-            <label for="title">Title</label><br>
-            <input type="text" id="title" name="title" value="{{ old('title') }}" required>
-        </div>
+        <label for="title">Title</label>
+        <input type="text" id="title" name="title" value="{{ old('title') }}" required>
 
-        <br>
+        <label for="body">Body</label>
+        <textarea id="body" name="body" rows="6" required>{{ old('body') }}</textarea>
 
-        <div>
-            <label for="body">Body</label><br>
-            <textarea id="body" name="body" rows="6" required>{{ old('body') }}</textarea>
-        </div>
-
-        <br>
-
-        <div>
+        <fieldset>
             <label>
                 <input type="checkbox" name="is_published" value="1" {{ old('is_published', true) ? 'checked' : '' }}>
-                Published (Uncheck to hide/save as draft)
+                Published (Uncheck to save as draft/hidden)
             </label>
+        </fieldset>
+
+        <div class="actions">
+            <button type="submit">Publish Post</button>
+            <a href="{{ route('home') }}" role="button" class="secondary outline">Cancel</a>
         </div>
-
-        <br>
-
-        <button type="submit">Publish Post</button>
-        <a href="{{ route('home') }}">Cancel</a>
     </form>
-</body>
-</html>
+@endsection

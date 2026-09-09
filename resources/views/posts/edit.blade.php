@@ -1,51 +1,40 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Edit Post</title>
-</head>
-<body>
+@extends('layouts.app')
+
+@section('title', 'Edit Post')
+
+@section('content')
     <h1>Edit Post</h1>
 
     @if ($errors->any())
-        <div style="color: red;">
-            <ul>
+        <article style="border-color: red;">
+            <ul style="color: red; margin: 0;">
                 @foreach ($errors->all() as $error)
                     <li>{{ $error }}</li>
                 @endforeach
             </ul>
-        </div>
+        </article>
     @endif
 
     <form action="{{ route('posts.update', $post) }}" method="POST">
         @csrf
         @method('PUT')
 
-        <div>
-            <label for="title">Title</label><br>
-            <input type="text" id="title" name="title" value="{{ old('title', $post->title) }}" required>
-        </div>
+        <label for="title">Title</label>
+        <input type="text" id="title" name="title" value="{{ old('title', $post->title) }}" required>
 
-        <br>
+        <label for="body">Body</label>
+        <textarea id="body" name="body" rows="6" required>{{ old('body', $post->body) }}</textarea>
 
-        <div>
-            <label for="body">Body</label><br>
-            <textarea id="body" name="body" rows="6" required>{{ old('body', $post->body) }}</textarea>
-        </div>
-
-        <br>
-
-        <div>
+        <fieldset>
             <label>
                 <input type="checkbox" name="is_published" value="1" {{ old('is_published', $post->is_published) ? 'checked' : '' }}>
                 Published (Uncheck to hide/save as draft)
             </label>
+        </fieldset>
+
+        <div class="actions">
+            <button type="submit">Update Post</button>
+            <a href="{{ route('home') }}" role="button" class="secondary outline">Cancel</a>
         </div>
-
-        <br>
-
-        <button type="submit">Update Post</button>
-        <a href="{{ route('home') }}">Cancel</a>
     </form>
-</body>
-</html>
+@endsection
