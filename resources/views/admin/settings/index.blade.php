@@ -52,7 +52,12 @@
                     @if(!empty($settings['header_image']))
                         <div class="mt-3">
                             <span class="text-xs text-gray-500 block mb-1">Current Banner:</span>
-                            <img src="{{ asset('storage/' . $settings['header_image']) }}" alt="Header Banner" class="h-16 w-full object-cover rounded border">
+                            <img src="{{ asset('storage/' . $settings['header_image']) }}" alt="Header Banner" class="h-16 w-full object-cover rounded border mb-2">
+                            
+                            <label class="inline-flex items-center text-sm text-red-600 cursor-pointer mt-1">
+                                <input type="checkbox" name="remove_header_image" value="1" class="rounded border-gray-300 text-red-600 shadow-sm focus:ring-red-500 mr-2">
+                                Remove current header image (revert to color)
+                            </label>
                         </div>
                     @endif
                 </div>

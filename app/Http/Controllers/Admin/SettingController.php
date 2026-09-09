@@ -24,9 +24,16 @@ class SettingController extends Controller
 
         $data = $validated['settings'];
 
-        // Handle header background image upload if provided
-        if ($request->hasFile('header_image')) {
-            // Optional: delete old image if it exists
+        // Check if user requested to remove the header image
+        if ($request->has('remove_header_image')) {
+            $oldImage = Setting::where('key', 'header_image')->value('value');
+            if ($oldImage && Storage::disk('public')->exists($oldImage)) {
+                Storage::disk('public')->delete($oldImage);
+            }
+            $data['header_image'] = ''; // Clear it out in the database
+        } 
+        // Handle new header background image upload if provided
+        elseif ($request->hasFile('header_image')) {
             $oldImage = Setting::where('key', 'header_image')->value('value');
             if ($oldImage && Storage::disk('public')->exists($oldImage)) {
                 Storage::disk('public')->delete($oldImage);
