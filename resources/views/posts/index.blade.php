@@ -33,7 +33,9 @@
                 </div>
             @endif
 
-            <p>{{ $post->body }}</p>
+            <div>
+                {!! Illuminate\Support\Str::markdown($post->body) !!}
+            </div>
 
             @if(session('is_admin'))
                 <footer>

@@ -32,7 +32,7 @@
         <input type="file" id="image" name="image" accept="image/*">
 
         <label for="body">Content</label>
-        <textarea id="body" name="body" rows="6" required>{{ old('body', $post->body) }}</textarea>
+        <textarea id="body" name="body" rows="8">{{ old('body', $post->body) }}</textarea>
 
         <fieldset>
             <label for="is_published">
@@ -46,4 +46,15 @@
             <a href="{{ route('home') }}" role="button" class="secondary outline">Cancel</a>
         </div>
     </form>
+
+    <script src="https://cdn.jsdelivr.net/npm/@ckeditor/ckeditor5-build-classic@39.0.1/build/ckeditor.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            if (typeof ClassicEditor !== 'undefined') {
+                ClassicEditor
+                    .create(document.querySelector('#body'))
+                    .catch(error => console.error('CKEditor Error:', error));
+            }
+        });
+    </script>
 @endsection

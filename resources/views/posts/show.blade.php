@@ -19,8 +19,14 @@
             </p>
         </header>
 
+        @if ($post->image_path)
+            <div style="margin-bottom: 1.5rem;">
+                <img src="{{ asset('storage/' . $post->image_path) }}" alt="{{ $post->title }}" style="width: 100%; max-height: 500px; object-fit: cover; border-radius: 0.375rem;">
+            </div>
+        @endif
+
         <div>
-            {!! nl2br(e($post->body)) !!}
+            {!! Illuminate\Support\Str::markdown($post->body) !!}
         </div>
 
         @if(session('is_admin'))
