@@ -4,7 +4,9 @@
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">
                 {{ __('Manage Posts') }}
             </h2>
-            <a href="{{ route('admin.posts.create') }}" class="bg-blue-500 text-white px-4 py-2 rounded-md text-sm font-semibold hover:bg-blue-600">Create Post</a>
+            <a href="{{ route('admin.posts.create') }}" style="background-color: #2563eb !important; color: #ffffff !important;" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md font-semibold text-xs uppercase tracking-widest hover:bg-blue-700 focus:outline-none transition ease-in-out duration-150">
+                Create Post
+            </a>
         </div>
     </x-slot>
 

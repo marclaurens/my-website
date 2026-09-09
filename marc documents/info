@@ -1,0 +1,37 @@
+npm run dev (Local Development): Run this once in a dedicated terminal window whenever you are coding on your local machine. Leave it running in the background so it instantly recompiles your Tailwind CSS and JavaScript as you save files.
+
+You only need to run npm run build once when you are ready to deploy your site to a live production server.
+
+Since you are coding locally, you can ignore npm run build for now and just keep npm run dev running in the background while you work
+
+Core Development Servers
+
+php artisan serve — Starts the local PHP development server (usually at [http://127.0.0.1:8000](http://127.0.0.1:8000)). Run this in one terminal window to view your site.
+
+npm run dev — Starts the Vite development server to compile Tailwind CSS and JavaScript in real-time. Keep this running alongside artisan serve while coding locally.
+
+npm run build — Bundles, compresses, and compiles all CSS and JS assets into static files. Run this once when deploying your project to a live production server.
+
+Database & Migrations
+
+php artisan migrate — Executes any new, pending database migration files to update your tables.
+
+php artisan migrate:fresh — Drops all existing database tables and re-runs every migration from scratch to reset your database schema.
+
+php artisan migrate:fresh --seed — Wipes the database, re-runs all migrations, and populates initial data using your database seeders.
+
+Caching & Troubleshooting
+
+php artisan view:clear — Clears compiled Blade template cache. Essential when layout changes or view updates fail to render properly.
+
+php artisan cache:clear — Clears the application's overall data cache.
+
+php artisan config:clear — Clears cached configuration settings so recent changes in .env or config files take effect.
+
+php artisan route:list — Displays a complete, structured table of all registered web routes, HTTP methods, URLs, and assigned controller actions.
+
+Code Generation
+
+php artisan make:model Post -m — Generates a new Eloquent model (Post) along with its corresponding database migration file in a single command.
+
+php artisan make:controller Admin/PostController — Generates a new controller class inside a specific folder or namespace.
