@@ -19,6 +19,12 @@
                     <!-- Dynamic Menu Items (Frontend) -->
                     @isset($headerMenuItems)
                         @foreach($headerMenuItems as $item)
+                            @php
+                                $page = $item->page;
+                                if ($page && $page->is_admin_only && !auth()->check()) {
+                                    continue;
+                                }
+                            @endphp
                             <x-nav-link :href="$item->target_url" :active="request()->url() == $item->target_url">
                                 {{ $item->title ?? optional($item->page)->title }}
                             </x-nav-link>
@@ -26,7 +32,7 @@
                     @endisset
 
                     <!-- Admin Management Links -->
-                    @auth
+                    @if(auth()->check())
                         <div class="hidden sm:flex sm:space-x-8 sm:ms-6 border-l border-gray-200 pl-6">
                             <x-nav-link :href="route('admin.pages.index')" :active="request()->routeIs('admin.pages.*')">
                                 {{ __('Pages') }}
@@ -41,13 +47,13 @@
                                 {{ __('Menu Builder') }}
                             </x-nav-link>
                         </div>
-                    @endauth
+                    @endif
                 </div>
             </div>
 
             <!-- Settings Dropdown -->
             <div class="hidden sm:flex sm:items-center sm:ms-6">
-                @auth
+                @if(auth()->check())
                     <x-dropdown align="right" width="48">
                         <x-slot name="trigger">
                             <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none transition ease-in-out duration-150">
@@ -85,7 +91,7 @@
                             <a href="{{ route('register') }}" class="text-sm text-gray-700 underline">Register</a>
                         @endif
                     </div>
-                @endauth
+                @endif
             </div>
 
             <!-- Hamburger -->
@@ -109,13 +115,19 @@
 
             @isset($headerMenuItems)
                 @foreach($headerMenuItems as $item)
+                    @php
+                        $page = $item->page;
+                        if ($page && $page->is_admin_only && !auth()->check()) {
+                            continue;
+                        }
+                    @endphp
                     <x-responsive-nav-link :href="$item->target_url" :active="request()->url() == $item->target_url">
                         {{ $item->title ?? optional($item->page)->title }}
                     </x-responsive-nav-link>
                 @endforeach
             @endisset
 
-            @auth
+            @if(auth()->check())
                 <div class="pt-2 pb-1 border-t border-gray-200 mt-2">
                     <div class="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Admin Management</div>
                     <x-responsive-nav-link :href="route('admin.pages.index')" :active="request()->routeIs('admin.pages.*')">
@@ -131,12 +143,12 @@
                         {{ __('Menu Builder') }}
                     </x-responsive-nav-link>
                 </div>
-            @endauth
+            @endif
         </div>
 
         <!-- Responsive Settings Options -->
         <div class="pt-4 pb-1 border-t border-gray-200">
-            @auth
+            @if(auth()->check())
                 <div class="px-4">
                     <div class="font-medium text-base text-gray-800">{{ Auth::user()->name }}</div>
                     <div class="font-medium text-sm text-gray-500">{{ Auth::user()->email }}</div>
@@ -165,7 +177,7 @@
                         <x-responsive-nav-link :href="route('register')">Register</x-responsive-nav-link>
                     @endif
                 </div>
-            @endauth
+            @endif
         </div>
     </div>
 </nav>

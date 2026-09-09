@@ -26,10 +26,12 @@ class PageController extends Controller
             'slug' => 'nullable|string|max:255|unique:pages,slug',
             'content' => 'nullable|string',
             'is_published' => 'boolean',
+            'is_admin_only' => 'boolean',
         ]);
 
         $validated['slug'] = $validated['slug'] ? Str::slug($validated['slug']) : Str::slug($validated['title']);
         $validated['is_published'] = $request->has('is_published');
+        $validated['is_admin_only'] = $request->has('is_admin_only');
 
         Page::create($validated);
 
@@ -48,10 +50,12 @@ class PageController extends Controller
             'slug' => 'nullable|string|max:255|unique:pages,slug,' . $page->id,
             'content' => 'nullable|string',
             'is_published' => 'boolean',
+            'is_admin_only' => 'boolean',
         ]);
 
         $validated['slug'] = $validated['slug'] ? Str::slug($validated['slug']) : Str::slug($validated['title']);
         $validated['is_published'] = $request->has('is_published');
+        $validated['is_admin_only'] = $request->has('is_admin_only');
 
         $page->update($validated);
 
@@ -66,7 +70,18 @@ class PageController extends Controller
 
     public function show($slug)
     {
-        $page = Page::where('slug', $slug)->where('is_published', true)->firstOrFail();
+        $page = Page::where('slug', $slug)->firstOrFail();
+
+        // If the page is restricted to admins only, require authentication
+        if ($page->is_admin_only && !auth()->check()) {
+            abort(403, 'Unauthorized access.');
+        }
+
+        // If standard page, require it to be published unless an admin is logged in
+        if (!$page->is_admin_only && !$page->is_published && !auth()->check()) {
+            abort(404);
+        }
+
         return view('pages.show', compact('page'));
     }
 }

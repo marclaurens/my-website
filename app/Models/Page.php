@@ -14,9 +14,11 @@ class Page extends Model
         'slug',
         'content',
         'is_published',
+        'is_admin_only',
     ];
 
     protected $casts = [
         'is_published' => 'boolean',
+        'is_admin_only' => 'boolean',
     ];
 }

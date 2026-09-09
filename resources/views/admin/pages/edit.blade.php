@@ -23,9 +23,15 @@
             <textarea name="content" id="content">{{ old('content', $page->content) }}</textarea>
         </div>
 
-        <div class="mb-6 flex items-center">
-            <input type="checkbox" name="is_published" id="is_published" value="1" {{ $page->is_published ? 'checked' : '' }} class="mr-2 h-4 w-4 text-blue-600 border-gray-300 rounded">
-            <label for="is_published" class="text-gray-700 font-medium">Published</label>
+        <div class="mb-6 flex items-center space-x-6">
+            <label class="inline-flex items-center">
+                <input type="checkbox" name="is_published" id="is_published" value="1" {{ old('is_published', $page->is_published) ? 'checked' : '' }} class="mr-2 h-4 w-4 text-blue-600 border-gray-300 rounded">
+                <span class="text-gray-700 font-medium">Published</span>
+            </label>
+            <label class="inline-flex items-center">
+                <input type="checkbox" name="is_admin_only" id="is_admin_only" value="1" {{ old('is_admin_only', $page->is_admin_only) ? 'checked' : '' }} class="mr-2 h-4 w-4 text-purple-600 border-gray-300 rounded">
+                <span class="text-gray-700 font-medium">Admin Only (Restricted)</span>
+            </label>
         </div>
 
         <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded">Update Page</button>
