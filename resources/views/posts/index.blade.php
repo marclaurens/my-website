@@ -3,7 +3,15 @@
 @section('title', 'All Posts')
 
 @section('content')
-    <h1>All Posts</h1>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+        <h1 style="margin: 0;">All Posts</h1>
+        
+        @if(session('is_admin'))
+            <a href="{{ route('posts.drafts') }}" role="button" class="secondary outline">
+                View Drafts / Hidden Posts &rarr;
+            </a>
+        @endif
+    </div>
 
     @forelse ($posts as $post)
         <article>
@@ -24,6 +32,12 @@
             @if(session('is_admin'))
                 <footer>
                     <div class="actions">
+                        <form action="{{ route('posts.toggle', $post) }}" method="POST">
+                            @csrf
+                            @method('PATCH')
+                            <button type="submit" class="secondary outline">Hide Post</button>
+                        </form>
+
                         <a href="{{ route('posts.edit', $post) }}" role="button" class="outline">Edit</a>
 
                         <form action="{{ route('posts.destroy', $post) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this post?');">

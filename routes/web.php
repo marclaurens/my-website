@@ -15,6 +15,8 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 // Protected Admin Routes
 Route::middleware(AdminAuth::class)->group(function () {
+    Route::get('/drafts', [PostController::class, 'drafts'])->name('posts.drafts');
+    Route::patch('/posts/{post}/toggle', [PostController::class, 'togglePublish'])->name('posts.toggle');
     Route::get('/posts/create', [PostController::class, 'create'])->name('posts.create');
     Route::post('/posts', [PostController::class, 'store'])->name('posts.store');
     Route::get('/posts/{post}/edit', [PostController::class, 'edit'])->name('posts.edit');
@@ -22,5 +24,5 @@ Route::middleware(AdminAuth::class)->group(function () {
     Route::delete('/posts/{post}', [PostController::class, 'destroy'])->name('posts.destroy');
 });
 
-// Public Show Route (Must stay below /posts/create to avoid route collision)
+// Public Show Route
 Route::get('/posts/{post}', [PostController::class, 'show'])->name('posts.show');

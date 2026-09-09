@@ -9,9 +9,22 @@ class PostController extends Controller
 {
     public function index()
     {
-        // Only fetch published posts for the public home page
         $posts = Post::where('is_published', true)->latest()->get();
         return view('posts.index', ['posts' => $posts]);
+    }
+
+    public function drafts()
+    {
+        $posts = Post::where('is_published', false)->latest()->get();
+        return view('posts.drafts', ['posts' => $posts]);
+    }
+
+    public function togglePublish(Post $post)
+    {
+        $post->update(['is_published' => !$post->is_published]);
+
+        $status = $post->is_published ? 'published' : 'hidden';
+        return back()->with('success', "Post has been {$status}!");
     }
 
     public function create()
