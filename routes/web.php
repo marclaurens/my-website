@@ -5,6 +5,7 @@ use App\Http\Controllers\PageController;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\MenuItemController;
+use App\Http\Controllers\Admin\SettingController;
 
 // Public Home Route
 Route::get('/', function () {
@@ -37,6 +38,10 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::post('/menu', [MenuItemController::class, 'store'])->name('menu.store');
     Route::put('/menu/{menuItem}', [MenuItemController::class, 'update'])->name('menu.update');
     Route::delete('/menu/{menuItem}', [MenuItemController::class, 'destroy'])->name('menu.destroy');
+
+    // Admin Settings
+    Route::get('/settings', [SettingController::class, 'index'])->name('settings.index');
+    Route::put('/settings', [SettingController::class, 'update'])->name('settings.update');
 });
 
 // Breeze Dashboard Redirect

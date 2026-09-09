@@ -1,12 +1,21 @@
-<nav x-data="{ open: false }" class="bg-white border-b border-gray-100">
+@php
+    $headerBgColor = $globalSettings['header_bg_color'] ?? '#ffffff';
+    $headerImage = $globalSettings['header_image'] ?? null;
+    
+    $headerStyle = $headerImage 
+        ? "background-image: url('" . asset('storage/' . $headerImage) . "'); background-size: cover; background-position: center;" 
+        : "background-color: {$headerBgColor};";
+@endphp
+
+<nav x-data="{ open: false }" class="border-b border-gray-100" style="{{ $headerStyle }}">
     <!-- Primary Navigation Menu -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-16">
             <div class="flex">
-                <!-- Logo -->
+                <!-- Logo / Site Name -->
                 <div class="shrink-0 flex items-center">
-                    <a href="{{ route('dashboard') }}">
-                        <x-application-logo class="block h-9 w-auto fill-current text-gray-800" />
+                    <a href="{{ route('dashboard') }}" class="font-bold text-xl text-gray-800 hover:text-gray-900 flex items-center">
+                        {{ $globalSettings['site_name'] ?? config('app.name', 'Laravel') }}
                     </a>
                 </div>
 
@@ -45,6 +54,9 @@
                             </x-nav-link>
                             <x-nav-link :href="route('admin.menu.index')" :active="request()->routeIs('admin.menu.*')">
                                 {{ __('Menu Builder') }}
+                            </x-nav-link>
+                            <x-nav-link :href="route('admin.settings.index')" :active="request()->routeIs('admin.settings.*')">
+                                {{ __('Settings') }}
                             </x-nav-link>
                         </div>
                     @endif
@@ -141,6 +153,9 @@
                     </x-responsive-nav-link>
                     <x-responsive-nav-link :href="route('admin.menu.index')" :active="request()->routeIs('admin.menu.*')">
                         {{ __('Menu Builder') }}
+                    </x-responsive-nav-link>
+                    <x-responsive-nav-link :href="route('admin.settings.index')" :active="request()->routeIs('admin.settings.*')">
+                        {{ __('Settings') }}
                     </x-responsive-nav-link>
                 </div>
             @endif
