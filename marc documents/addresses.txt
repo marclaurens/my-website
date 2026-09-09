@@ -1,0 +1,41 @@
+8.9.2026   late evening  to 9.9.26 early morning.
+
+
+port is 8001
+
+laravel app. phpmyadmin. nodejs i think.
+
+
+kimi started the project but timed out , gemini continued and did not timeout and managed to add quite a bit.
+
+
+[http://127.0.0.1:8001/register]
+
+Public-Facing URLs
+
+[http://127.0.0.1:8001/](http://127.0.0.1:8001/) — Public homepage
+
+[http://127.0.0.1:8001/posts](http://127.0.0.1:8001/posts) — Public blog post listing
+
+[http://127.0.0.1:8001/posts/](http://127.0.0.1:8001/posts/){slug} — Individual public blog post viewer
+
+[http://127.0.0.1:8001/page/](http://127.0.0.1:8001/page/){slug} — Dynamic page viewer
+
+Admin Management URLs (Protected by Authentication)
+
+[http://127.0.0.1:8001/dashboard](http://127.0.0.1:8001/dashboard) — Redirects automatically to the admin pages index
+
+[http://127.0.0.1:8001/admin/pages](http://127.0.0.1:8001/admin/pages) — CMS Page management (Index, Create, Edit, Delete)
+
+[http://127.0.0.1:8001/admin/posts](http://127.0.0.1:8001/admin/posts) — CMS Post management (Index, Create, Edit, Delete, Drafts)
+
+[http://127.0.0.1:8001/admin/categories](http://127.0.0.1:8001/admin/categories) — Category management for blog posts
+
+[http://127.0.0.1:8001/admin/menu](http://127.0.0.1:8001/admin/menu) — Inline Menu Builder for navigation links
+
+Authentication & Account URLs
+
+[http://127.0.0.1:8001/login](http://127.0.0.1:8001/login) — Breeze login page
+
+[http://127.0.0.1:8001/profile](http://127.0.0.1:8001/profile) — Authenticated user profile and password management
+

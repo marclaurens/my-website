@@ -10,6 +10,16 @@
         </div>
     @endif
 
+    @if($errors->any())
+        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+            <ul>
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
     <form action="{{ route('admin.menu.store') }}" method="POST" class="bg-white p-6 shadow rounded mb-6">
         @csrf
         <h2 class="text-lg font-bold mb-4">Add Menu Item</h2>
@@ -43,17 +53,29 @@
         <h2 class="text-lg font-bold mb-4">Current Navigation Items</h2>
         <ul class="divide-y divide-gray-200">
             @forelse($menuItems as $item)
-                <li class="flex justify-between items-center py-3">
+                <li class="py-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div>
-                        <span class="font-bold text-gray-800">{{ $item->title }}</span>
-                        <span class="text-sm text-gray-500 ml-2">({{ $item->target_url }})</span>
-                        <span class="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded ml-2">Order: {{ $item->order }}</span>
+                        <span class="font-bold text-gray-800 text-lg">{{ $item->title }}</span>
+                        <span class="text-sm text-gray-500 block md:inline md:ml-2">({{ $item->target_url }})</span>
                     </div>
-                    <form action="{{ route('admin.menu.destroy', $item->id) }}" method="POST" onsubmit="return confirm('Remove this menu item?');">
-                        @csrf
-                        @method('DELETE')
-                        <button type="submit" class="text-red-600 hover:text-red-800 text-sm font-medium">Remove</button>
-                    </form>
+                    
+                    <div class="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end">
+                        <!-- Inline Update Form for Order -->
+                        <form action="{{ route('admin.menu.update', $item->id) }}" method="POST" class="flex items-center gap-2">
+                            @csrf
+                            @method('PUT')
+                            <label class="text-xs text-gray-600 font-medium">Order:</label>
+                            <input type="number" name="order" value="{{ $item->order }}" class="w-20 border p-1 rounded text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <button type="submit" class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium px-3 py-1.5 rounded border">Update</button>
+                        </form>
+
+                        <!-- Delete Form -->
+                        <form action="{{ route('admin.menu.destroy', $item->id) }}" method="POST" onsubmit="return confirm('Remove this menu item?');">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="text-red-600 hover:text-red-800 text-sm font-medium px-2 py-1">Remove</button>
+                        </form>
+                    </div>
                 </li>
             @empty
                 <li class="py-3 text-gray-500">No menu items configured yet.</li>

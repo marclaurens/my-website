@@ -14,6 +14,10 @@ Route::get('/', function () {
 // Public Dynamic Page Viewer Route
 Route::get('/page/{slug}', [PageController::class, 'show'])->name('pages.show');
 
+// Public Blog Post Routes
+Route::get('/posts', [PostController::class, 'publicIndex'])->name('posts.index');
+Route::get('/posts/{slug}', [PostController::class, 'publicShow'])->name('posts.show');
+
 // Admin Routes (Protected by Breeze Authentication)
 Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
     // Admin CMS Resources
@@ -28,6 +32,7 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     // Admin Menu Builder
     Route::get('/menu', [MenuItemController::class, 'index'])->name('menu.index');
     Route::post('/menu', [MenuItemController::class, 'store'])->name('menu.store');
+    Route::put('/menu/{menuItem}', [MenuItemController::class, 'update'])->name('menu.update');
     Route::delete('/menu/{menuItem}', [MenuItemController::class, 'destroy'])->name('menu.destroy');
 });
 

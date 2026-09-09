@@ -10,6 +10,34 @@ use Illuminate\Support\Str;
 
 class PostController extends Controller
 {
+    // Public: List published posts for visitors
+    public function publicIndex()
+    {
+        $posts = Post::with('category')->where('is_published', true)->latest()->paginate(10);
+        $categories = Category::orderBy('name')->get();
+
+        return view('posts.index', compact('posts', 'categories'));
+    }
+
+    // Public: Show a single published post by slug for visitors
+    // Public: Show a single published post by slug for visitors
+    public function publicShow($slug)
+    {
+        $post = Post::with('category')
+            ->where('is_published', true)
+            ->get()
+            ->first(function ($p) use ($slug) {
+                $postSlug = $p->slug ?? \Illuminate\Support\Str::slug($p->title);
+                return $postSlug === $slug;
+            });
+
+        if (!$post) {
+            abort(404);
+        }
+
+        return view('posts.show', compact('post'));
+    }
+
     public function index()
     {
         $posts = Post::with('category')->where('is_published', true)->latest()->get();
@@ -67,6 +95,7 @@ class PostController extends Controller
         }
 
         $validated['is_published'] = $request->boolean('is_published');
+        $validated['slug'] = Str::slug($validated['title']);
 
         Post::create($validated);
 
@@ -112,6 +141,7 @@ class PostController extends Controller
         }
 
         $validated['is_published'] = $request->boolean('is_published');
+        $validated['slug'] = Str::slug($validated['title']);
 
         $post->update($validated);
 
