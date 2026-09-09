@@ -12,9 +12,9 @@
                 <!-- Category Badge & Date -->
                 <div class="flex items-center space-x-3 mb-6">
                     @if($post->category)
-                        <span class="inline-block bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded">
+                        <a href="{{ route('categories.show', $post->category->slug) }}" class="inline-block bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded hover:bg-blue-200">
                             {{ $post->category->name }}
-                        </span>
+                        </a>
                     @endif
                     <p class="text-sm text-gray-500">Published on {{ $post->created_at->format('M d, Y') }}</p>
                 </div>

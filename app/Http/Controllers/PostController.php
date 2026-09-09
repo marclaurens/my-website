@@ -20,7 +20,6 @@ class PostController extends Controller
     }
 
     // Public: Show a single published post by slug for visitors
-    // Public: Show a single published post by slug for visitors
     public function publicShow($slug)
     {
         $post = Post::with('category')
@@ -36,6 +35,22 @@ class PostController extends Controller
         }
 
         return view('posts.show', compact('post'));
+    }
+
+    // Public: List published posts filtered by category for visitors
+    public function publicByCategory($slug)
+    {
+        $category = Category::where('slug', $slug)->firstOrFail();
+        
+        $posts = Post::with('category')
+            ->where('category_id', $category->id)
+            ->where('is_published', true)
+            ->latest()
+            ->paginate(10);
+            
+        $categories = Category::orderBy('name')->get();
+
+        return view('posts.index', compact('posts', 'categories', 'category'));
     }
 
     public function index()

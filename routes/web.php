@@ -18,6 +18,9 @@ Route::get('/page/{slug}', [PageController::class, 'show'])->name('pages.show');
 Route::get('/posts', [PostController::class, 'publicIndex'])->name('posts.index');
 Route::get('/posts/{slug}', [PostController::class, 'publicShow'])->name('posts.show');
 
+// Public Category Filtering Route
+Route::get('/category/{slug}', [PostController::class, 'publicByCategory'])->name('categories.show');
+
 // Admin Routes (Protected by Breeze Authentication)
 Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
     // Admin CMS Resources
