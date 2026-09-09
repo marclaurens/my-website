@@ -13,6 +13,14 @@
                         $slug = $post->slug ?? Str::slug($post->title);
                     @endphp
                     <div class="mb-6 pb-6 border-b border-gray-200 last:border-b-0 last:mb-0 last:pb-0">
+                        
+                        <!-- Category Badge -->
+                        @if($post->category)
+                            <span class="inline-block bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded mb-2">
+                                {{ $post->category->name }}
+                            </span>
+                        @endif
+
                         <h3 class="text-xl font-bold text-gray-900">
                             <a href="{{ route('posts.show', $slug) }}" class="hover:text-blue-600">
                                 {{ $post->title }}
