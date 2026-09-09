@@ -1,0 +1,3 @@
+port is 8001
+
+laravel app. phpmyadmin. nodejs i think.

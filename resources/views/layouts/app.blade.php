@@ -9,8 +9,30 @@
         header { margin-bottom: 2rem; border-bottom: 1px solid var(--pico-muted-border-color); }
         .success-alert { background-color: var(--pico-ins-color); color: white; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1.5rem; }
         .error-alert { background-color: var(--pico-del-color); color: white; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1.5rem; }
-        .actions { display: flex; gap: 0.75rem; align-items: center; }
-        .actions form { margin: 0; }
+        
+        /* Unified button & form alignment resets */
+        .actions, nav ul {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+        .actions form, nav form {
+            margin: 0;
+            display: inline-flex;
+        }
+        .actions button, 
+        .actions a[role="button"],
+        nav a[role="button"],
+        nav button {
+            margin: 0 !important;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            height: 2.25rem;
+            padding: 0 0.85rem;
+            font-size: 0.875rem;
+            line-height: 1;
+        }
     </style>
 </head>
 <body>
@@ -22,11 +44,12 @@
                 </ul>
                 <ul>
                     @if(session('is_admin'))
+                        <li><a href="{{ route('posts.drafts') }}" class="secondary">Drafts</a></li>
                         <li><a href="{{ route('posts.create') }}" role="button" class="outline">+ Create Post</a></li>
                         <li>
-                            <form action="{{ route('logout') }}" method="POST" style="margin: 0;">
+                            <form action="{{ route('logout') }}" method="POST">
                                 @csrf
-                                <button type="submit" class="secondary outline" style="padding: 0.25rem 0.75rem;">Logout</button>
+                                <button type="submit" class="secondary outline">Logout</button>
                             </form>
                         </li>
                     @else
