@@ -1,61 +1,44 @@
-@extends('layouts.app')
+<x-app-layout>
+    <x-slot name="header">
+        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+            {{ __('Manage Categories') }}
+        </h2>
+    </x-slot>
 
-@section('title', 'Manage Categories')
+    <div class="py-12">
+        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
+                <form action="{{ route('admin.categories.store') }}" method="POST" class="mb-6 flex gap-4">
+                    @csrf
+                    <input type="text" name="name" placeholder="Category Name" class="border-gray-300 rounded-md shadow-sm flex-1" required>
+                    <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-md">Add Category</button>
+                </form>
 
-@section('content')
-    <h1>Manage Categories</h1>
-
-    <article style="margin-bottom: 2rem;">
-        <h3>Create New Category</h3>
-        <form action="{{ route('categories.store') }}" method="POST">
-            @csrf
-            <div style="display: flex; gap: 1rem; align-items: flex-end;">
-                <div style="flex: 1; margin-bottom: 0;">
-                    <label for="name">Category Name</label>
-                    <input type="text" id="name" name="name" placeholder="e.g. Technology, Tutorials..." value="{{ old('name') }}" required>
-                </div>
-                <button type="submit" style="width: auto; margin-bottom: 0;">Add Category</button>
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b">
+                            <th class="py-2">Name</th>
+                            <th class="py-2">Slug</th>
+                            <th class="py-2 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($categories as $category)
+                            <tr class="border-b">
+                                <td class="py-2">{{ $category->name }}</td>
+                                <td class="py-2 text-gray-500">{{ $category->slug }}</td>
+                                <td class="py-2 text-right">
+                                    <form action="{{ route('admin.categories.destroy', $category) }}" method="POST" class="inline">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="text-red-600 hover:underline" onclick="return confirm('Are you sure?')">Delete</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
             </div>
-            @error('name')
-                <p style="color: red;"><small>{{ $message }}</small></p>
-            @enderror
-        </form>
-    </article>
-
-    <h2>Existing Categories</h2>
-
-    @if ($categories->isEmpty())
-        <p>No categories found.</p>
-    @else
-        <table>
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Slug</th>
-                    <th>Total Posts</th>
-                    <th style="text-align: right;">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach ($categories as $category)
-                    <tr>
-                        <td><strong>{{ $category->name }}</strong></td>
-                        <td><code>{{ $category->slug }}</code></td>
-                        <td>{{ $category->posts_count }} {{ Str::plural('post', $category->posts_count) }}</td>
-                        <td style="text-align: right;">
-                            <div style="display: inline-flex; gap: 0.5rem; justify-content: flex-end;">
-                                <a href="{{ route('categories.edit', $category) }}" role="button" class="secondary outline" style="padding: 0.25rem 0.5rem; font-size: 0.85rem;">Edit</a>
-
-                                <form action="{{ route('categories.destroy', $category) }}" method="POST" onsubmit="return confirm('Delete this category? Posts will become uncategorized.');" style="margin: 0;">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="contrast outline" style="padding: 0.25rem 0.5rem; font-size: 0.85rem;">Delete</button>
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
-                @endforeach
-            </tbody>
-        </table>
-    @endif
-@endsection
+        </div>
+    </div>
+</x-app-layout>

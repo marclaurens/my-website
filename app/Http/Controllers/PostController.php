@@ -15,7 +15,7 @@ class PostController extends Controller
         $posts = Post::with('category')->where('is_published', true)->latest()->get();
         $categories = Category::orderBy('name')->get();
 
-        return view('posts.index', compact('posts', 'categories'));
+        return view('admin.posts.index', compact('posts', 'categories'));
     }
 
     public function byCategory(Category $category)
@@ -28,19 +28,19 @@ class PostController extends Controller
 
         $categories = Category::orderBy('name')->get();
 
-        return view('posts.index', compact('posts', 'categories', 'category'));
+        return view('admin.posts.index', compact('posts', 'categories', 'category'));
     }
 
     public function drafts()
     {
         $posts = Post::with('category')->where('is_published', false)->latest()->get();
-        return view('posts.drafts', compact('posts'));
+        return view('admin.posts.drafts', compact('posts'));
     }
 
     public function create()
     {
         $categories = Category::orderBy('name')->get();
-        return view('posts.create', compact('categories'));
+        return view('admin.posts.create', compact('categories'));
     }
 
     public function store(Request $request)
@@ -70,19 +70,19 @@ class PostController extends Controller
 
         Post::create($validated);
 
-        return redirect()->route('home')->with('success', 'Post created successfully!');
+        return redirect()->route('admin.posts.index')->with('success', 'Post created successfully!');
     }
 
     public function show(Post $post)
     {
         $post->load('category');
-        return view('posts.show', compact('post'));
+        return view('admin.posts.show', compact('post'));
     }
 
     public function edit(Post $post)
     {
         $categories = Category::orderBy('name')->get();
-        return view('posts.edit', compact('post', 'categories'));
+        return view('admin.posts.edit', compact('post', 'categories'));
     }
 
     public function update(Request $request, Post $post)
@@ -115,14 +115,14 @@ class PostController extends Controller
 
         $post->update($validated);
 
-        return redirect()->route('home')->with('success', 'Post updated successfully!');
+        return redirect()->route('admin.posts.index')->with('success', 'Post updated successfully!');
     }
 
     public function destroy(Post $post)
     {
         $post->delete();
 
-        return redirect()->route('home')->with('success', 'Post deleted successfully!');
+        return redirect()->route('admin.posts.index')->with('success', 'Post deleted successfully!');
     }
 
     public function togglePublish(Post $post)

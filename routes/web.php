@@ -1,36 +1,75 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\PageController;
 use App\Http\Controllers\PostController;
-use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\MenuItemController;
 
-// Public Routes
-Route::get('/', [PostController::class, 'index'])->name('home');
-Route::get('/posts/{post}', [PostController::class, 'show'])->name('posts.show');
-Route::get('/category/{category:slug}', [PostController::class, 'byCategory'])->name('posts.category');
-
-// Authentication Routes
-Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
-Route::post('/login', [AuthController::class, 'login']);
-Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
-
-// Admin Protected Routes
-Route::middleware(['admin'])->group(function () {
-    // Post Management
-    Route::get('/posts/create/new', [PostController::class, 'create'])->name('posts.create');
-    Route::post('/posts', [PostController::class, 'store'])->name('posts.store');
-    Route::get('/posts/{post}/edit', [PostController::class, 'edit'])->name('posts.edit');
-    Route::put('/posts/{post}', [PostController::class, 'update'])->name('posts.update');
-    Route::delete('/posts/{post}', [PostController::class, 'destroy'])->name('posts.destroy');
-    Route::patch('/posts/{post}/toggle', [PostController::class, 'togglePublish'])->name('posts.toggle');
-    Route::get('/drafts', [PostController::class, 'drafts'])->name('posts.drafts');
-    Route::post('/upload-image', [PostController::class, 'uploadImage'])->name('posts.upload_image');
-
-    // Category Management
-    Route::get('/admin/categories', [CategoryController::class, 'index'])->name('categories.index');
-    Route::post('/admin/categories', [CategoryController::class, 'store'])->name('categories.store');
-    Route::get('/admin/categories/{category}/edit', [CategoryController::class, 'edit'])->name('categories.edit');
-    Route::put('/admin/categories/{category}', [CategoryController::class, 'update'])->name('categories.update');
-    Route::delete('/admin/categories/{category}', [CategoryController::class, 'destroy'])->name('categories.destroy');
+// Public Home Route
+Route::get('/', function () {
+    return view('welcome');
 });
+
+// Public Dynamic Page Viewer Route
+Route::get('/page/{slug}', [PageController::class, 'show'])->name('pages.show');
+
+// Admin Routes (Protected by Breeze Authentication)
+Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
+    // Admin CMS Resources
+    Route::resource('pages', PageController::class);
+    
+    // Custom Post Image Upload Route (Placed before resource to avoid route clashes)
+    Route::post('posts/upload-image', [PostController::class, 'uploadImage'])->name('posts.upload_image');
+    
+    Route::resource('posts', PostController::class);
+    Route::resource('categories', CategoryController::class);
+
+    // Admin Menu Builder
+    Route::get('/menu', [MenuItemController::class, 'index'])->name('menu.index');
+    Route::post('/menu', [MenuItemController::class, 'store'])->name('menu.store');
+    Route::delete('/menu/{menuItem}', [MenuItemController::class, 'destroy'])->name('menu.destroy');
+});
+
+// Breeze Dashboard Redirect
+Route::middleware(['auth'])->get('/dashboard', function () {
+    return redirect()->route('admin.pages.index');
+})->name('dashboard');
+
+// Breeze Profile Management Routes
+Route::middleware(['auth'])->group(function () {
+    Route::get('/profile', function () {
+        return view('profile.edit', [
+            'user' => auth()->user(),
+        ]);
+    })->name('profile.edit');
+
+    Route::patch('/profile', function (\Illuminate\Http\Request $request) {
+        $user = auth()->user();
+        $user->fill($request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email,' . $user->id],
+        ]));
+        $user->save();
+
+        return redirect()->route('profile.edit')->with('status', 'profile-updated');
+    })->name('profile.update');
+
+    Route::delete('/profile', function (\Illuminate\Http\Request $request) {
+        $request->validateWithBag('userDeletion', [
+            'password' => ['required', 'current_password'],
+        ]);
+
+        $user = $request->user();
+        Auth::logout();
+        $user->delete();
+
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect('/');
+    })->name('profile.destroy');
+});
+
+// Breeze Auth Routes (Loaded automatically from routes/auth.php)
+require __DIR__.'/auth.php';
