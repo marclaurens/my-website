@@ -27,6 +27,12 @@
                 </small>
             </header>
 
+            @if ($post->image_path)
+                <div style="margin-bottom: 1rem;">
+                    <img src="{{ asset('storage/' . $post->image_path) }}" alt="{{ $post->title }}" style="width: 100%; max-height: 400px; object-fit: cover; border-radius: 0.375rem;">
+                </div>
+            @endif
+
             <p>{{ $post->body }}</p>
 
             @if(session('is_admin'))

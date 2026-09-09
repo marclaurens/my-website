@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Post;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class PostController extends Controller
 {
@@ -37,7 +38,12 @@ class PostController extends Controller
         $validated = $request->validate([
             'title' => 'required|max:255',
             'body' => 'required',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
         ]);
+
+        if ($request->hasFile('image')) {
+            $validated['image_path'] = $request->file('image')->store('posts', 'public');
+        }
 
         $validated['is_published'] = $request->boolean('is_published');
 
@@ -61,7 +67,16 @@ class PostController extends Controller
         $validated = $request->validate([
             'title' => 'required|max:255',
             'body' => 'required',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
         ]);
+
+        if ($request->hasFile('image')) {
+            // Delete old image if it exists
+            if ($post->image_path) {
+                Storage::disk('public')->delete($post->image_path);
+            }
+            $validated['image_path'] = $request->file('image')->store('posts', 'public');
+        }
 
         $validated['is_published'] = $request->boolean('is_published');
 
@@ -72,6 +87,10 @@ class PostController extends Controller
 
     public function destroy(Post $post)
     {
+        if ($post->image_path) {
+            Storage::disk('public')->delete($post->image_path);
+        }
+
         $post->delete();
 
         return redirect('/')->with('success', 'Post deleted successfully!');
