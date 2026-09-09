@@ -88,25 +88,24 @@
 <body>
     <div class="container">
         <header>
-            <nav>
-                <ul>
-                    <li><strong><a href="{{ route('home') }}" class="contrast">My CMS Website</a></strong></li>
-                </ul>
-                <ul>
-                    @if(session('is_admin'))
-                        <li><a href="{{ route('posts.drafts') }}" class="secondary">Drafts</a></li>
-                        <li><a href="{{ route('posts.create') }}" role="button" class="outline">+ Create Post</a></li>
-                        <li>
-                            <form action="{{ route('logout') }}" method="POST">
-                                @csrf
-                                <button type="submit" class="secondary outline">Logout</button>
-                            </form>
-                        </li>
-                    @else
-                        <li><a href="{{ route('login') }}" class="secondary">Admin Login</a></li>
-                    @endif
-                </ul>
-            </nav>
+            <<nav>
+    <ul>
+        <li><a href="{{ route('home') }}">Home</a></li>
+
+        {{-- Locate your existing session('is_admin') check and update it --}}
+        @if (session('is_admin'))
+            <li><a href="{{ route('posts.create') }}">New Post</a></li>
+            <li><a href="{{ route('posts.drafts') }}">Drafts</a></li>
+            <li><a href="{{ route('categories.index') }}">Categories</a></li>
+            <li>
+                <form action="{{ route('logout') }}" method="POST" style="margin:0;">
+                    @csrf
+                    <button type="submit" class="secondary outline" style="padding: 0.25rem 0.5rem;">Logout</button>
+                </form>
+            </li>
+        @endif
+    </ul>
+</nav>
         </header>
 
         <main>

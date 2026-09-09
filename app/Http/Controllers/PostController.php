@@ -13,7 +13,22 @@ class PostController extends Controller
     public function index()
     {
         $posts = Post::with('category')->where('is_published', true)->latest()->get();
-        return view('posts.index', compact('posts'));
+        $categories = Category::orderBy('name')->get();
+
+        return view('posts.index', compact('posts', 'categories'));
+    }
+
+    public function byCategory(Category $category)
+    {
+        $posts = $category->posts()
+            ->with('category')
+            ->where('is_published', true)
+            ->latest()
+            ->get();
+
+        $categories = Category::orderBy('name')->get();
+
+        return view('posts.index', compact('posts', 'categories', 'category'));
     }
 
     public function drafts()
@@ -38,7 +53,6 @@ class PostController extends Controller
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
         ]);
 
-        // If a new category name is provided, create or find it
         if (!empty($request->new_category)) {
             $categoryName = trim($request->new_category);
             $category = Category::firstOrCreate(
@@ -81,7 +95,6 @@ class PostController extends Controller
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
         ]);
 
-        // If a new category name is provided, create or find it
         if (!empty($request->new_category)) {
             $categoryName = trim($request->new_category);
             $category = Category::firstOrCreate(

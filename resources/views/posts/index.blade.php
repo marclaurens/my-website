@@ -1,12 +1,31 @@
 @extends('layouts.app')
 
-@section('title', 'All Posts')
+@section('title', isset($category) ? "Category: {$category->name}" : 'All Posts')
 
 @section('content')
-    <h1>Latest Posts</h1>
+    @if (isset($category))
+        <h1>Posts in "{{ $category->name }}"</h1>
+        <p><a href="{{ route('home') }}">&larr; Show all posts</a></p>
+    @else
+        <h1>Latest Posts</h1>
+    @endif
+
+    @if ($categories->isNotEmpty())
+        <nav style="margin-bottom: 2rem;">
+            <strong>Categories: </strong>
+            <a href="{{ route('home') }}" class="{{ !isset($category) ? 'secondary' : '' }}" style="margin-right: 0.5rem;">All</a>
+            @foreach ($categories as $cat)
+                <a href="{{ route('posts.category', $cat) }}" 
+                   style="margin-right: 0.5rem;"
+                   class="{{ isset($category) && $category->id === $cat->id ? 'secondary' : '' }}">
+                   {{ $cat->name }}
+                </a>
+            @endforeach
+        </nav>
+    @endif
 
     @if ($posts->isEmpty())
-        <p>No posts available.</p>
+        <p>No posts found in this category.</p>
     @else
         @foreach ($posts as $post)
             <article style="margin-bottom: 2rem;">
@@ -19,7 +38,10 @@
                 <p>
                     <small>Posted {{ $post->created_at->diffForHumans() }}</small>
                     @if ($post->category)
-                        &bull; <mark style="font-size: 0.8rem; padding: 0.2rem 0.5rem;">{{ $post->category->name }}</mark>
+                        &bull; 
+                        <a href="{{ route('posts.category', $post->category) }}">
+                            <mark style="font-size: 0.8rem; padding: 0.2rem 0.5rem;">{{ $post->category->name }}</mark>
+                        </a>
                     @endif
                 </p>
 

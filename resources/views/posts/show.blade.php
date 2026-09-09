@@ -13,7 +13,10 @@
         <p>
             <small>Published {{ $post->created_at->format('F j, Y') }}</small>
             @if ($post->category)
-                &bull; <mark style="font-size: 0.8rem; padding: 0.2rem 0.5rem;">{{ $post->category->name }}</mark>
+                &bull; 
+                <a href="{{ route('posts.category', $post->category) }}">
+                    <mark style="font-size: 0.8rem; padding: 0.2rem 0.5rem;">{{ $post->category->name }}</mark>
+                </a>
             @endif
         </p>
 
