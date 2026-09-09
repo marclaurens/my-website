@@ -15,20 +15,21 @@ class Post extends Model
         'body',
         'is_published',
         'image_path',
+        'category_id',
     ];
 
-    /**
-     * The "booted" method of the model.
-     */
+    public function category()
+    {
+        return $this->belongsTo(Category::class);
+    }
+
     protected static function booted(): void
     {
         static::deleting(function (Post $post) {
-            // 1. Delete the cover image if present
             if ($post->image_path) {
                 Storage::disk('public')->delete($post->image_path);
             }
 
-            // 2. Extract and delete all inline CKEditor images embedded in the body HTML
             if ($post->body) {
                 preg_match_all('/storage\/(editor-images\/[^\s"\'\>]+)/i', $post->body, $matches);
 

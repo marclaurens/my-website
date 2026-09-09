@@ -3,63 +3,53 @@
 @section('title', 'All Posts')
 
 @section('content')
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
-        <h1 style="margin: 0;">All Posts</h1>
-        
-        @if(session('is_admin'))
-            <a href="{{ route('posts.drafts') }}" role="button" class="secondary outline">
-                View Drafts / Hidden Posts &rarr;
-            </a>
-        @endif
-    </div>
+    <h1>Latest Posts</h1>
 
-    @forelse ($posts as $post)
-        <article>
-            <header>
-                <h2 style="margin-bottom: 0.25rem;">
-                    <a href="{{ route('posts.show', $post) }}">{{ $post->title }}</a>
-                </h2>
-                <small style="color: var(--pico-muted-color);">
-                    Posted on {{ $post->created_at->format('F j, Y') }} ({{ $post->created_at->diffForHumans() }})
-                    @if ($post->created_at->ne($post->updated_at))
-                        &bull; <strong>Updated {{ $post->updated_at->diffForHumans() }}</strong>
+    @if ($posts->isEmpty())
+        <p>No posts available.</p>
+    @else
+        @foreach ($posts as $post)
+            <article style="margin-bottom: 2rem;">
+                @if ($post->image_path)
+                    <img src="{{ Storage::url($post->image_path) }}" alt="{{ $post->title }}" class="post-cover">
+                @endif
+
+                <h2><a href="{{ route('posts.show', $post) }}">{{ $post->title }}</a></h2>
+
+                <p>
+                    <small>Posted {{ $post->created_at->diffForHumans() }}</small>
+                    @if ($post->category)
+                        &bull; <mark style="font-size: 0.8rem; padding: 0.2rem 0.5rem;">{{ $post->category->name }}</mark>
                     @endif
-                </small>
-            </header>
+                </p>
 
-            @if ($post->image_path)
-                <div style="margin-bottom: 1rem;">
-                    <img src="{{ asset('storage/' . $post->image_path) }}" alt="{{ $post->title }}" style="width: 100%; max-height: 400px; object-fit: cover; border-radius: 0.375rem;">
+                <div class="post-body">
+                    {!! Str::limit(strip_tags($post->body), 200) !!}
                 </div>
-            @endif
 
-            <div>
-                {!! Illuminate\Support\Str::markdown($post->body) !!}
-            </div>
+                <p style="margin-top: 1rem;">
+                    <a href="{{ route('posts.show', $post) }}">Read full post &rarr;</a>
+                </p>
 
-            @if(session('is_admin'))
-                <footer>
+                @if (session('is_admin'))
+                    <hr>
                     <div class="actions">
-                        <form action="{{ route('posts.toggle', $post) }}" method="POST">
+                        <a href="{{ route('posts.edit', $post) }}" role="button" class="secondary outline">Edit</a>
+
+                        <form action="{{ route('posts.toggle', $post) }}" method="POST" style="margin: 0;">
                             @csrf
                             @method('PATCH')
-                            <button type="submit" class="secondary outline">Hide Post</button>
+                            <button type="submit" class="contrast outline">Hide Post</button>
                         </form>
 
-                        <a href="{{ route('posts.edit', $post) }}" role="button" class="outline">Edit</a>
-
-                        <form action="{{ route('posts.destroy', $post) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this post?');">
+                        <form action="{{ route('posts.destroy', $post) }}" method="POST" onsubmit="return confirm('Delete this post permanently?');" style="margin: 0;">
                             @csrf
                             @method('DELETE')
-                            <button type="submit" class="outline secondary">Delete</button>
+                            <button type="submit" class="contrast outline">Delete</button>
                         </form>
                     </div>
-                </footer>
-            @endif
-        </article>
-    @empty
-        <article>
-            <p>No published posts yet.</p>
-        </article>
-    @endforelse
+                @endif
+            </article>
+        @endforeach
+    @endif
 @endsection

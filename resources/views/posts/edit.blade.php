@@ -6,8 +6,8 @@
     <h1>Edit Post</h1>
 
     @if ($errors->any())
-        <div style="color: var(--pico-del-color); margin-bottom: 1rem;">
-            <ul>
+        <div style="background-color: #f8d7da; color: #721c24; padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem;">
+            <ul style="margin: 0; padding-left: 1.2rem;">
                 @foreach ($errors->all() as $error)
                     <li>{{ $error }}</li>
                 @endforeach
@@ -20,34 +20,49 @@
         @method('PUT')
 
         <label for="title">Title</label>
-        <input type="text" id="title" name="title" value="{{ old('title', $post->title) }}" required>
+        <input type="text" name="title" id="title" value="{{ old('title', $post->title) }}" required>
 
-        <label for="image">Cover Image (optional)</label>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; align-items: end; margin-bottom: 1rem;">
+            <div>
+                <label for="category_id">Select Category</label>
+                <select name="category_id" id="category_id">
+                    <option value="">-- Select Existing --</option>
+                    @foreach ($categories as $category)
+                        <option value="{{ $category->id }}" {{ old('category_id', $post->category_id) == $category->id ? 'selected' : '' }}>
+                            {{ $category->name }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
+                <label for="new_category">Or Create New Category</label>
+                <input type="text" name="new_category" id="new_category" value="{{ old('new_category') }}" placeholder="e.g. Tutorials">
+            </div>
+        </div>
+
+        <label for="image">Cover Image</label>
         @if ($post->image_path)
             <div style="margin-bottom: 1rem;">
-                <img src="{{ asset('storage/' . $post->image_path) }}" alt="Current Image" style="max-height: 150px; border-radius: 4px; display: block; margin-bottom: 0.5rem;">
-                <small style="color: var(--pico-muted-color);">Select a new file to replace this cover image.</small>
+                <img src="{{ Storage::url($post->image_path) }}" alt="Current Cover" style="max-height: 150px; display: block; margin-bottom: 0.5rem;">
+                <small>Current cover image</small>
             </div>
         @endif
-        <input type="file" id="image" name="image" accept="image/*">
+        <input type="file" name="image" id="image" accept="image/*">
 
         <label for="body">Content</label>
-        <textarea id="body" name="body" rows="8">{{ old('body', $post->body) }}</textarea>
+        <textarea name="body" id="editor">{{ old('body', $post->body) }}</textarea>
 
         <fieldset>
             <label for="is_published">
-                <input type="checkbox" id="is_published" name="is_published" value="1" {{ old('is_published', $post->is_published) ? 'checked' : '' }}>
+                <input type="checkbox" name="is_published" id="is_published" value="1" {{ old('is_published', $post->is_published) ? 'checked' : '' }}>
                 Published
             </label>
         </fieldset>
 
-        <div class="actions">
-            <button type="submit">Update Post</button>
-            <a href="{{ route('home') }}" role="button" class="secondary outline">Cancel</a>
-        </div>
+        <button type="submit">Update Post</button>
     </form>
 
-    <script src="https://cdn.jsdelivr.net/npm/@ckeditor/ckeditor5-build-classic@39.0.1/build/ckeditor.js"></script>
+    <script src="https://cdn.ckeditor.com/ckeditor5/39.0.1/classic/ckeditor.js"></script>
     <script>
         class LaravelUploadAdapter {
             constructor(loader) {
@@ -55,57 +70,46 @@
             }
 
             upload() {
-                return this.loader.file.then(file => new Promise((resolve, reject) => {
-                    const data = new FormData();
-                    data.append('upload', file);
-                    data.append('_token', '{{ csrf_token() }}');
+                return this.loader.file
+                    .then(file => new Promise((resolve, reject) => {
+                        const data = new FormData();
+                        data.append('upload', file);
+                        data.append('_token', '{{ csrf_token() }}');
 
-                    fetch('{{ route("posts.upload_image") }}', {
-                        method: 'POST',
-                        headers: {
-                            'Accept': 'application/json'
-                        },
-                        body: data
-                    })
-                    .then(response => {
-                        if (!response.ok) {
-                            return response.json().then(err => {
-                                throw new Error(err.message || `Upload failed with status ${response.status}`);
-                            });
-                        }
-                        return response.json();
-                    })
-                    .then(result => {
-                        resolve({
-                            default: result.url
-                        });
-                    })
-                    .catch(error => {
-                        reject(error.message || 'Image upload failed');
-                    });
-                }));
+                        fetch('{{ route("posts.upload_image") }}', {
+                            method: 'POST',
+                            body: data,
+                            headers: {
+                                'Accept': 'application/json'
+                            }
+                        })
+                        .then(response => response.json())
+                        .then(result => {
+                            if (result.url) {
+                                resolve({ default: result.url });
+                            } else {
+                                reject(result.error ? result.error.message : 'Upload failed');
+                            }
+                        })
+                        .catch(error => reject(error));
+                    }));
             }
 
             abort() {}
         }
 
-        function CustomUploadAdapterPlugin(editor) {
+        function LaravelUploadAdapterPlugin(editor) {
             editor.plugins.get('FileRepository').createUploadAdapter = (loader) => {
                 return new LaravelUploadAdapter(loader);
             };
         }
 
-        document.addEventListener('DOMContentLoaded', function () {
-            const editorElement = document.querySelector('#body');
-            if (editorElement) {
-                ClassicEditor
-                    .create(editorElement, {
-                        extraPlugins: [CustomUploadAdapterPlugin]
-                    })
-                    .catch(error => {
-                        console.error('CKEditor Error:', error);
-                    });
-            }
-        });
+        ClassicEditor
+            .create(document.querySelector('#editor'), {
+                extraPlugins: [LaravelUploadAdapterPlugin],
+            })
+            .catch(error => {
+                console.error(error);
+            });
     </script>
 @endsection

@@ -3,26 +3,29 @@
 namespace App\Http\Controllers;
 
 use App\Models\Post;
+use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class PostController extends Controller
 {
     public function index()
     {
-        $posts = Post::where('is_published', true)->latest()->get();
+        $posts = Post::with('category')->where('is_published', true)->latest()->get();
         return view('posts.index', compact('posts'));
     }
 
     public function drafts()
     {
-        $posts = Post::where('is_published', false)->latest()->get();
+        $posts = Post::with('category')->where('is_published', false)->latest()->get();
         return view('posts.drafts', compact('posts'));
     }
 
     public function create()
     {
-        return view('posts.create');
+        $categories = Category::orderBy('name')->get();
+        return view('posts.create', compact('categories'));
     }
 
     public function store(Request $request)
@@ -30,8 +33,20 @@ class PostController extends Controller
         $validated = $request->validate([
             'title' => 'required|max:255',
             'body' => 'required',
+            'category_id' => 'nullable|exists:categories,id',
+            'new_category' => 'nullable|string|max:255',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
         ]);
+
+        // If a new category name is provided, create or find it
+        if (!empty($request->new_category)) {
+            $categoryName = trim($request->new_category);
+            $category = Category::firstOrCreate(
+                ['name' => $categoryName],
+                ['slug' => Str::slug($categoryName)]
+            );
+            $validated['category_id'] = $category->id;
+        }
 
         if ($request->hasFile('image')) {
             $validated['image_path'] = $request->file('image')->store('posts', 'public');
@@ -46,12 +61,14 @@ class PostController extends Controller
 
     public function show(Post $post)
     {
+        $post->load('category');
         return view('posts.show', compact('post'));
     }
 
     public function edit(Post $post)
     {
-        return view('posts.edit', compact('post'));
+        $categories = Category::orderBy('name')->get();
+        return view('posts.edit', compact('post', 'categories'));
     }
 
     public function update(Request $request, Post $post)
@@ -59,8 +76,20 @@ class PostController extends Controller
         $validated = $request->validate([
             'title' => 'required|max:255',
             'body' => 'required',
+            'category_id' => 'nullable|exists:categories,id',
+            'new_category' => 'nullable|string|max:255',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
         ]);
+
+        // If a new category name is provided, create or find it
+        if (!empty($request->new_category)) {
+            $categoryName = trim($request->new_category);
+            $category = Category::firstOrCreate(
+                ['name' => $categoryName],
+                ['slug' => Str::slug($categoryName)]
+            );
+            $validated['category_id'] = $category->id;
+        }
 
         if ($request->hasFile('image')) {
             if ($post->image_path) {
@@ -78,8 +107,6 @@ class PostController extends Controller
 
     public function destroy(Post $post)
     {
-       
-
         $post->delete();
 
         return redirect()->route('home')->with('success', 'Post deleted successfully!');
