@@ -22,11 +22,11 @@
         <label for="title">Title</label>
         <input type="text" id="title" name="title" value="{{ old('title', $post->title) }}" required>
 
-        <label for="image">Post Image (optional)</label>
+        <label for="image">Cover Image (optional)</label>
         @if ($post->image_path)
             <div style="margin-bottom: 1rem;">
-                <img src="{{ asset('storage/' . $post->image_path) }}" alt="Current Image" style="max-height: 150px; border-radius: 0.25rem; display: block; margin-bottom: 0.5rem;">
-                <small style="color: var(--pico-muted-color);">Select a new file below to replace this image.</small>
+                <img src="{{ asset('storage/' . $post->image_path) }}" alt="Current Image" style="max-height: 150px; border-radius: 4px; display: block; margin-bottom: 0.5rem;">
+                <small style="color: var(--pico-muted-color);">Select a new file to replace this cover image.</small>
             </div>
         @endif
         <input type="file" id="image" name="image" accept="image/*">
@@ -49,11 +49,62 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@ckeditor/ckeditor5-build-classic@39.0.1/build/ckeditor.js"></script>
     <script>
+        class LaravelUploadAdapter {
+            constructor(loader) {
+                this.loader = loader;
+            }
+
+            upload() {
+                return this.loader.file.then(file => new Promise((resolve, reject) => {
+                    const data = new FormData();
+                    data.append('upload', file);
+                    data.append('_token', '{{ csrf_token() }}');
+
+                    fetch('{{ route("posts.upload_image") }}', {
+                        method: 'POST',
+                        headers: {
+                            'Accept': 'application/json'
+                        },
+                        body: data
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            return response.json().then(err => {
+                                throw new Error(err.message || `Upload failed with status ${response.status}`);
+                            });
+                        }
+                        return response.json();
+                    })
+                    .then(result => {
+                        resolve({
+                            default: result.url
+                        });
+                    })
+                    .catch(error => {
+                        reject(error.message || 'Image upload failed');
+                    });
+                }));
+            }
+
+            abort() {}
+        }
+
+        function CustomUploadAdapterPlugin(editor) {
+            editor.plugins.get('FileRepository').createUploadAdapter = (loader) => {
+                return new LaravelUploadAdapter(loader);
+            };
+        }
+
         document.addEventListener('DOMContentLoaded', function () {
-            if (typeof ClassicEditor !== 'undefined') {
+            const editorElement = document.querySelector('#body');
+            if (editorElement) {
                 ClassicEditor
-                    .create(document.querySelector('#body'))
-                    .catch(error => console.error('CKEditor Error:', error));
+                    .create(editorElement, {
+                        extraPlugins: [CustomUploadAdapterPlugin]
+                    })
+                    .catch(error => {
+                        console.error('CKEditor Error:', error);
+                    });
             }
         });
     </script>

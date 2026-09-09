@@ -8,10 +8,6 @@ class AuthController extends Controller
 {
     public function showLogin()
     {
-        if (session('is_admin')) {
-            return redirect()->route('home');
-        }
-
         return view('auth.login');
     }
 
@@ -21,20 +17,17 @@ class AuthController extends Controller
             'password' => 'required',
         ]);
 
-        // Default password is 'password123' or set ADMIN_PASSWORD in your .env file
-        $adminPassword = env('ADMIN_PASSWORD', 'password123');
-
-        if ($request->password === $adminPassword) {
+        if ($request->password === 'admin123') {
             session(['is_admin' => true]);
-            return redirect()->route('home')->with('success', 'Logged in as Admin successfully!');
+            return redirect()->route('home')->with('success', 'Logged in successfully!');
         }
 
-        return back()->withErrors(['password' => 'Incorrect admin password.']);
+        return back()->with('error', 'Invalid password.');
     }
 
     public function logout()
     {
         session()->forget('is_admin');
-        return redirect()->route('home')->with('success', 'Logged out successfully.');
+        return redirect()->route('home')->with('success', 'Logged out successfully!');
     }
 }

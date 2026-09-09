@@ -11,21 +11,13 @@ class PostController extends Controller
     public function index()
     {
         $posts = Post::where('is_published', true)->latest()->get();
-        return view('posts.index', ['posts' => $posts]);
+        return view('posts.index', compact('posts'));
     }
 
     public function drafts()
     {
         $posts = Post::where('is_published', false)->latest()->get();
-        return view('posts.drafts', ['posts' => $posts]);
-    }
-
-    public function togglePublish(Post $post)
-    {
-        $post->update(['is_published' => !$post->is_published]);
-
-        $status = $post->is_published ? 'published' : 'hidden';
-        return back()->with('success', "Post has been {$status}!");
+        return view('posts.drafts', compact('posts'));
     }
 
     public function create()
@@ -49,17 +41,17 @@ class PostController extends Controller
 
         Post::create($validated);
 
-        return redirect('/')->with('success', 'Post created successfully!');
+        return redirect()->route('home')->with('success', 'Post created successfully!');
     }
 
     public function show(Post $post)
     {
-        return view('posts.show', ['post' => $post]);
+        return view('posts.show', compact('post'));
     }
 
     public function edit(Post $post)
     {
-        return view('posts.edit', ['post' => $post]);
+        return view('posts.edit', compact('post'));
     }
 
     public function update(Request $request, Post $post)
@@ -71,7 +63,6 @@ class PostController extends Controller
         ]);
 
         if ($request->hasFile('image')) {
-            // Delete old image if it exists
             if ($post->image_path) {
                 Storage::disk('public')->delete($post->image_path);
             }
@@ -82,7 +73,7 @@ class PostController extends Controller
 
         $post->update($validated);
 
-        return redirect('/')->with('success', 'Post updated successfully!');
+        return redirect()->route('home')->with('success', 'Post updated successfully!');
     }
 
     public function destroy(Post $post)
@@ -93,6 +84,27 @@ class PostController extends Controller
 
         $post->delete();
 
-        return redirect('/')->with('success', 'Post deleted successfully!');
+        return redirect()->route('home')->with('success', 'Post deleted successfully!');
+    }
+
+    public function togglePublish(Post $post)
+    {
+        $post->update(['is_published' => !$post->is_published]);
+
+        $status = $post->is_published ? 'published' : 'hidden';
+        return back()->with('success', "Post has been {$status}!");
+    }
+
+    public function uploadImage(Request $request)
+    {
+        $request->validate([
+            'upload' => 'required|image|mimes:jpeg,png,jpg,gif,webp,svg|max:10240',
+        ]);
+
+        $path = $request->file('upload')->store('editor-images', 'public');
+
+        return response()->json([
+            'url' => asset('storage/' . $path)
+        ]);
     }
 }

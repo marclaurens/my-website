@@ -3,30 +3,16 @@
 @section('title', 'Admin Login')
 
 @section('content')
-    <div style="max-width: 450px; margin: 2rem auto;">
-        <article>
-            <header>
-                <h1 style="margin: 0; font-size: 1.5rem;">Admin Login</h1>
-            </header>
+    <article style="max-width: 400px; margin: 2rem auto;">
+        <h2>Admin Login</h2>
 
-            @if ($errors->any())
-                <div style="color: var(--pico-del-color); margin-bottom: 1rem;">
-                    <ul style="margin: 0;">
-                        @foreach ($errors->all() as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
-                </div>
-            @endif
+        <form action="{{ route('login') }}" method="POST">
+            @csrf
 
-            <form action="{{ route('login.submit') }}" method="POST">
-                @csrf
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" required placeholder="Enter admin password">
 
-                <label for="password">Enter Admin Password</label>
-                <input type="password" id="password" name="password" placeholder="Default: password123" required autofocus>
-
-                <button type="submit">Log In</button>
-            </form>
-        </article>
-    </div>
+            <button type="submit">Login</button>
+        </form>
+    </article>
 @endsection
