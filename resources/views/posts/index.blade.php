@@ -13,22 +13,27 @@
                 </h2>
                 <small style="color: var(--pico-muted-color);">
                     Posted on {{ $post->created_at->format('F j, Y') }} ({{ $post->created_at->diffForHumans() }})
+                    @if ($post->created_at->ne($post->updated_at))
+                        &bull; <strong>Updated {{ $post->updated_at->diffForHumans() }}</strong>
+                    @endif
                 </small>
             </header>
 
             <p>{{ $post->body }}</p>
 
-            <footer>
-                <div class="actions">
-                    <a href="{{ route('posts.edit', $post) }}" role="button" class="outline">Edit</a>
+            @if(session('is_admin'))
+                <footer>
+                    <div class="actions">
+                        <a href="{{ route('posts.edit', $post) }}" role="button" class="outline">Edit</a>
 
-                    <form action="{{ route('posts.destroy', $post) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this post?');">
-                        @csrf
-                        @method('DELETE')
-                        <button type="submit" class="outline secondary">Delete</button>
-                    </form>
-                </div>
-            </footer>
+                        <form action="{{ route('posts.destroy', $post) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this post?');">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="outline secondary">Delete</button>
+                        </form>
+                    </div>
+                </footer>
+            @endif
         </article>
     @empty
         <article>

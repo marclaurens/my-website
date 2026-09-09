@@ -10,7 +10,11 @@
             <h1>{{ $post->title }}</h1>
             <p style="margin-bottom: 0;">
                 <small style="color: var(--pico-muted-color);">
-                    Posted on {{ $post->created_at->format('F j, Y \a\t g:i A') }} &bull; Status: {{ $post->is_published ? 'Published' : 'Hidden / Draft' }}
+                    Posted on {{ $post->created_at->format('F j, Y \a\t g:i A') }}
+                    @if ($post->created_at->ne($post->updated_at))
+                        &bull; <strong>Updated on {{ $post->updated_at->format('F j, Y \a\t g:i A') }} ({{ $post->updated_at->diffForHumans() }})</strong>
+                    @endif
+                    &bull; Status: {{ $post->is_published ? 'Published' : 'Hidden / Draft' }}
                 </small>
             </p>
         </header>
@@ -19,16 +23,18 @@
             {!! nl2br(e($post->body)) !!}
         </div>
 
-        <footer>
-            <div class="actions">
-                <a href="{{ route('posts.edit', $post) }}" role="button" class="outline">Edit Post</a>
+        @if(session('is_admin'))
+            <footer>
+                <div class="actions">
+                    <a href="{{ route('posts.edit', $post) }}" role="button" class="outline">Edit Post</a>
 
-                <form action="{{ route('posts.destroy', $post) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this post?');">
-                    @csrf
-                    @method('DELETE')
-                    <button type="submit" class="outline secondary">Delete Post</button>
-                </form>
-            </div>
-        </footer>
+                    <form action="{{ route('posts.destroy', $post) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this post?');">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="outline secondary">Delete Post</button>
+                    </form>
+                </div>
+            </footer>
+        @endif
     </article>
 @endsection
