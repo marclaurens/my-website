@@ -138,32 +138,37 @@ Public URL note: PostController::publicShow($slug) fetches all posts and matches
 
 6. Layouts
 
-Two parallel layouts. Each is used by a distinct set of pages. Do not mix them.
+Single source of truth: layouts/base.blade.php. Two thin wrappers extend it, and two component classes expose the wrappers as <x-app-layout> and <x-admin-layout>.
 
-layouts/admin.blade.php
-- Used by @extends('layouts.admin') + @section('content')
-- Contains an @php block reading $globalSettings (or querying Setting::pluck)
-- @include('partials.theme-vars') renders CSS variables and body/heading styling
-- @include('layouts.navigation'), then @yield('content'), then @stack('scripts')
-- Contains CKEditor content styling and admin-panel-specific CSS
+layouts/base.blade.php  (component: App\View\Components\BaseLayout)
+- The actual HTML shell. Holds <!DOCTYPE html>, <head>, @vite, the @php block reading $globalSettings (with Setting::pluck fallback), the <style> block including @include('partials.theme-vars') and all CKEditor content styling, @include('layouts.navigation'), an optional $header block, the {{ $slot }} content area, and @stack('scripts') at the end of <body>.
+- Every global chrome change (head meta, body class, styles, scripts, nav include) happens here and nowhere else.
 
-layouts/app.blade.php
-- Used via <x-app-layout> component (App\View\Components\AppLayout)
-- Same @php block, same partial include
-- Uses {{ $slot }} — not @yield('content')
-- Has @isset($header) block for named header slot
+layouts/app.blade.php  (component: App\View\Components\AppLayout)
+- Thin wrapper. Contains only:
+    <x-base-layout>
+        {{ $slot }}
+    </x-base-layout>
+- Used via <x-app-layout> on public pages and Breeze pages.
 
-Rule: any blade using <x-app-layout> must pass content as a slot. Any blade using @extends('layouts.app') + @section('content') will render blank, because there is no @yield('content') in that layout. Use <x-app-layout> or switch to @extends('layouts.admin').
+layouts/admin.blade.php  (component: App\View\Components\AdminLayout)
+- Thin wrapper, identical body to app.blade.php.
+- Used via <x-admin-layout> on all admin blades.
+- Admin panel chrome is NOT different from the public chrome at the shell level. If admin-specific chrome is ever needed, it belongs as a conditional inside base.blade.php, not as a second shell.
+
+Rule: any blade wrapping content must use a component ( <x-app-layout> or <x-admin-layout> ). Do NOT use @extends('layouts.app') or @extends('layouts.admin') + @section('content') — neither layout defines @yield('content') anymore. The old @extends mechanism is gone.
+
+Rule: @push('scripts') blocks MUST be inside the component tags, i.e. before </x-admin-layout>, not after. With component layouts, the component renders its slot first and then renders its own output (including @stack('scripts')). A @push placed after the closing component tag is processed after the stack has already been output, so the push is silently dropped. This bit the four CKEditor blades and was fixed in fix-ckeditor-push.ps1.
 
 layouts/navigation.blade.php
 - Shared nav. Uses $globalSettings for site name and header styling, and $headerMenuItems for the dynamic menu (set by AppServiceProvider).
-- $headerMenuItems is now a tree (top-level items with `children` set recursively), NOT a flat collection.
+- $headerMenuItems is a tree (top-level items with children set recursively), NOT a flat collection.
 - Desktop: @include('partials.menu-item', ['item' => $item]) — each top-level item is passed to the partial.
 - Mobile: @include('partials.menu-item-mobile', ['item' => $item, 'depth' => 0]).
-- Admin-only filtering moved into AppServiceProvider (before tree build), so the blade no longer filters.
+- Admin-only filtering happens in AppServiceProvider (before tree build), so the blade no longer filters.
 
 partials/theme-vars.blade.php
-- Contains raw CSS (no <style> wrapper) that outputs the CSS variables and applies them to body, headings, and .bg-primary/.text-primary/button[type="submit"] etc. Included inside the <style> block of both layouts.
+- Contains raw CSS (no <style> wrapper) that outputs the CSS variables and applies them to body, headings, and .bg-primary/.text-primary/button[type="submit"] etc. Included inside the <style> block of base.blade.php.
 
 partials/menu-item.blade.php
 - Top-level desktop nav item. If the item has children, renders a wrapper `<div class="relative h-full flex items-center" x-data="{ open: false }">` with hover/focus handling, a chevron toggle button (for touch), and an absolutely-positioned dropdown containing @include('partials.menu-item-dropdown') for each child. If no children, renders a plain <x-nav-link>.
@@ -174,7 +179,6 @@ partials/menu-item-dropdown.blade.php
 
 partials/menu-item-mobile.blade.php
 - Recursive: mobile hamburger items. Indented via inline style padding-left: {{ 16 + ($depth * 16) }}px (Tailwind JIT can't see dynamically-built class names). Tap-to-expand for items with children; plain <a> for leaves.
-
 7. CKEditor 5 setup
 
 Installation
@@ -324,37 +328,6 @@ Frontend rendering:
 - Mobile items → partials/menu-item-mobile.blade.php (recursive, inline padding for indentation)
 - Behavior: hover-open on desktop with focus-within for keyboard; tap-toggle for touch; @click.away to close
 
-11. Everything fixed across the project
-
-Earlier sessions (from Revision 1):
-- invalid-license-key with CDN trial key → moved to self-hosted GPL build
-- window.initCkEditor is not a function → replaced @vite module tag with inline dynamic import()
-- Stale compiled views → removed storage\framework\views\*
-- Old UMD code still in four editor blades → overwritten
-- layouts/app.blade.php referenced a nonexistent /js/ckeditor-init.js → removed
-- Blank <x-app-layout> pages → @yield('content') changed to {{ $slot }}, added @isset($header)
-- CKEditor icons huge → added <link> on the CSS chunk in four blades
-- $accentColor undefined → stale compiled view
-- admin/posts/edit.blade.php loaded the pages edit form → overwritten
-- Global text color setting did nothing → added body { color: var(--text-color); }, mapped Tailwind gray
-- Five admin blades broken (wrong layout + nonexistent routes) → converted to @extends('layouts.admin') with correct admin.* route names
-- Post::$fillable had slug before the column existed → column added via migration, all posts backfilled
-- Post.php wiped by broken PowerShell → restored, no BOM
-- Theme CSS extracted to partials/theme-vars.blade.php; first version had nested <style> tags causing raw CSS to render as text
-- Drafts route was missing → added back with correct ordering
-- Admin PostController::index() filtered to published-only → removed
-- PATCH admin/posts/{post}/toggle route + Publish/Unpublish button added
-- admin/categories/index.blade.php HTML typo → fixed
-- Multiple BOM issues from Set-Content -Encoding UTF8 → fixed with WriteAllText(..., UTF8Encoding $false)
-
-This session (Revision 2):
-- Added parent_id migration, model relations, buildTree, descendantIds
-- Rewrote MenuItemController (index with flatten, store/update/destroy with parent support, cycle prevention)
-- Rewrote AppServiceProvider to build the tree and filter admin-only items before building
-- Created partials/menu-item.blade.php, menu-item-dropdown.blade.php, menu-item-mobile.blade.php
-- Rewrote layouts/navigation.blade.php to use the partials (both desktop and mobile)
-- Rewrote admin/menu/index.blade.php — Parent select on add form, indented list, inline expandable edit, descendant-aware Parent select in each edit form
-- Fixed a subtle vertical alignment issue in the top-level nav item: outer wrapper now has `relative h-full flex items-center`; chevron button lost pt-1
 - Deleted the junk migration 2026_09_11_2i49_add_slug_to_posts_table.php
 
 12. Working conventions and gotchas
@@ -396,7 +369,6 @@ Where $content is a here-string (@" ... "@) containing the file body.
 Layout rule
 @extends('layouts.admin') + @section('content')  → admin pages
 <x-app-layout> + <x-slot name="header">          → public pages
-@extends('layouts.app') + @section('content')     → does not work (no @yield('content') in that layout)
 
 Blade cache
 After editing a blade:
@@ -456,6 +428,9 @@ Created (this session):
 - resources/views/partials/menu-item-mobile.blade.php
 - list-files.ps1 (helper — not part of the app)
 - project-files.txt (generated output — not part of the app)
+- resources/views/layouts/base.blade.php
+- app/View/Components/BaseLayout.php
+- app/View/Components/AdminLayout.php
 
 Created (earlier sessions):
 - resources/js/ckeditor-init.js
@@ -467,6 +442,9 @@ Modified (this session):
 - app/Providers/AppServiceProvider.php
 - resources/views/layouts/navigation.blade.php
 - resources/views/admin/menu/index.blade.php
+- resources/views/layouts/app.blade.php (rewritten as thin wrapper)
+- resources/views/layouts/admin.blade.php (rewritten as thin wrapper)
+- All 13 blades under resources/views/admin/ (wrapper changed from @extends/@section to <x-admin-layout>)
 
 Modified (earlier sessions):
 - vite.config.js, package.json, package-lock.json

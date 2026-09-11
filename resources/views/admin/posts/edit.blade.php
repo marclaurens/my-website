@@ -1,6 +1,4 @@
-@extends('layouts.admin')
-
-@section('content')
+<x-admin-layout>
 <div class="container mx-auto py-6">
     <h1 class="text-2xl font-bold mb-6">Edit Post</h1>
 
@@ -59,9 +57,8 @@
         <a href="{{ route('admin.posts.index') }}" class="ml-2 text-gray-600 hover:underline">Cancel</a>
     </form>
 </div>
-@endsection
 
-@push('scripts')
+    @push('scripts')
 <link rel="stylesheet" href="/build/assets/ckeditor-init-BA9sK04e.css">
 <script type="module">
     import('{{ Vite::asset("resources/js/ckeditor-init.js") }}').then(() => {
@@ -76,3 +73,4 @@
     }).catch(err => console.error('[CKEditor] module load failed', err));
 </script>
 @endpush
+</x-admin-layout>

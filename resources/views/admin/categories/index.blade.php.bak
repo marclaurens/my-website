@@ -1,4 +1,6 @@
-<x-admin-layout>
+@extends('layouts.admin')
+
+@section('content')
 <div class="container mx-auto py-6">
     <h1 class="text-2xl font-bold mb-6">Manage Categories</h1>
 
@@ -58,4 +60,4 @@
         </table>
     </div>
 </div>
-</x-admin-layout>
+@endsection

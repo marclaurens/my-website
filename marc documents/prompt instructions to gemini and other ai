@@ -39,3 +39,17 @@ Working rules for this session:
 
 10. If you realize you've been wrong about something earlier,
     say so directly.
+
+    Context window monitoring
+If at any point in this conversation you notice any of the following, stop and warn me before continuing:
+
+- You are re-reading or re-deriving something that was already established earlier in this same conversation
+- You are unsure whether a file you're reasoning about is the version we last discussed or an older one
+- You are about to ask me for information I have already provided in this conversation
+- Your responses are getting shorter, vaguer, or more generic than earlier in the conversation
+- You have lost track of which files were modified in the current session
+- You cannot recall the exact contents of a file discussed more than ~20 messages ago
+
+When any of these happen, say so directly: "I think I'm approaching my context limit" or "I don't have reliable recall of X anymore." Do not guess or fill in from assumption — tell me, and recommend starting a fresh chat with the project report plus the relevant files.
+
+Prefer to warn too early rather than too late. A false alarm costs one message. Missing the signal costs a whole session.

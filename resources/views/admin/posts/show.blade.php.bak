@@ -1,4 +1,6 @@
-<x-admin-layout>
+@extends('layouts.admin')
+
+@section('content')
 <div class="container mx-auto py-6 max-w-4xl">
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-2xl font-bold">{{ $post->title }}</h1>
@@ -30,4 +32,4 @@
         </div>
     </div>
 </div>
-</x-admin-layout>
+@endsection
