@@ -55,7 +55,7 @@ class PostController extends Controller
 
     public function index()
     {
-        $posts = Post::with('category')->where('is_published', true)->latest()->get();
+        $posts = Post::with('category')->latest()->get();
         $categories = Category::orderBy('name')->get();
 
         return view('admin.posts.index', compact('posts', 'categories'));

@@ -1,0 +1,11 @@
+[33mcommit 8650e2db53870e8a928b1fae6ecc0cb1798b6a77[m
+Author: marc Laurens <marc.laurens@gmail.com>
+Date:   Wed Sep 9 02:25:09 2026 +0100
+
+    add hidden posts
+
+ app/Http/Controllers/PostController.php | 15 [32m++++++++++[m[31m-[m
+ resources/views/posts/drafts.blade.php  | 48 [32m+++++++++++++++++++++++++++++++++[m
+ resources/views/posts/index.blade.php   | 16 [32m++++++++++[m[31m-[m
+ routes/web.php                          |  4 [32m++[m[31m-[m
+ 4 files changed, 80 insertions(+), 3 deletions(-)

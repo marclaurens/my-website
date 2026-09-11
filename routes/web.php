@@ -30,6 +30,10 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     // Custom Post Image Upload Route (Placed before resource to avoid route clashes)
     Route::post('posts/upload-image', [PostController::class, 'uploadImage'])->name('posts.upload_image');
     
+    Route::get('posts/drafts', [PostController::class, 'drafts'])->name('posts.drafts');
+
+    Route::patch('posts/{post}/toggle', [PostController::class, 'togglePublish'])->name('posts.toggle');
+
     Route::resource('posts', PostController::class);
     Route::resource('categories', CategoryController::class);
 
