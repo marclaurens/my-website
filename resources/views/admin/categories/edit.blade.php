@@ -1,27 +1,30 @@
-@extends('layouts.app')
-
-@section('title', "Edit Category: {$category->name}")
+﻿@extends('layouts.admin')
 
 @section('content')
-    <h1>Edit Category</h1>
+<div class="container mx-auto py-6 max-w-2xl">
+    <h1 class="text-2xl font-bold mb-6">Edit Category</h1>
 
-    <article>
-        <form action="{{ route('categories.update', $category) }}" method="POST">
-            @csrf
-            @method('PUT')
+    <form action="{{ route('admin.categories.update', $category) }}" method="POST" class="bg-white p-6 rounded shadow">
+        @csrf
+        @method('PUT')
 
-            <label for="name">Category Name</label>
-            <input type="text" id="name" name="name" value="{{ old('name', $category->name) }}" required>
-            @error('name')
-                <p style="color: red;"><small>{{ $message }}</small></p>
-            @enderror
+        <div class="mb-4">
+            <label class="block text-gray-700 font-bold mb-2" for="name">Category Name</label>
+            <input type="text" name="name" id="name" value="{{ old('name', $category->name) }}" class="w-full border rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+            @error('name')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+        </div>
 
-            <p><small>Updating this name will instantly reflect across all {{ $category->posts()->count() }} post(s) currently using this category.</small></p>
+        <div class="mb-4">
+            <label class="block text-gray-700 font-bold mb-2" for="slug">Slug (optional)</label>
+            <input type="text" name="slug" id="slug" value="{{ old('slug', $category->slug) }}" class="w-full border rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <p class="text-xs text-gray-500 mt-1">Leave blank to auto-generate from the name.</p>
+            @error('slug')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+        </div>
 
-            <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
-                <button type="submit">Update Category</button>
-                <a href="{{ route('categories.index') }}" role="button" class="secondary outline">Cancel</a>
-            </div>
-        </form>
-    </article>
+        <p class="text-sm text-gray-500 mb-6">Updating this name will affect all {{ $category->posts()->count() }} post(s) using this category.</p>
+
+        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded">Update Category</button>
+        <a href="{{ route('admin.categories.index') }}" class="ml-2 text-gray-600 hover:underline">Cancel</a>
+    </form>
+</div>
 @endsection

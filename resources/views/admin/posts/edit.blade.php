@@ -4,13 +4,14 @@
 <div class="container mx-auto py-6">
     <h1 class="text-2xl font-bold mb-6">Edit Post</h1>
 
-    <form action="{{ route('admin.posts.update', $post->id) }}" method="POST" class="bg-white p-6 rounded shadow">
+    <form action="{{ route('admin.posts.update', $post->id) }}" method="POST" enctype="multipart/form-data" class="bg-white p-6 rounded shadow">
         @csrf
         @method('PUT')
 
         <div class="mb-4">
             <label class="block text-gray-700 font-bold mb-2" for="title">Title</label>
             <input type="text" name="title" id="title" value="{{ old('title', $post->title) }}" class="w-full border rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+            @error('title')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
         </div>
 
         <div class="mb-4">
@@ -24,13 +25,27 @@
         </div>
 
         <div class="mb-4">
-            <label class="block text-gray-700 font-bold mb-2" for="excerpt">Excerpt</label>
-            <textarea name="excerpt" id="excerpt" rows="2" class="w-full border rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-500">{{ old('excerpt', $post->excerpt) }}</textarea>
+            <label class="block text-gray-700 font-bold mb-2" for="new_category">Or create a new category (optional)</label>
+            <input type="text" name="new_category" id="new_category" value="{{ old('new_category') }}" class="w-full border rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Leave blank to keep current category">
         </div>
 
         <div class="mb-4">
-            <label class="block text-gray-700 font-bold mb-2" for="content">Content</label>
-            <textarea name="content" id="content">{{ old('content', $post->content) }}</textarea>
+            <label class="block text-gray-700 font-bold mb-2" for="body">Content</label>
+            <textarea name="body" id="body">{{ old('body', $post->body) }}</textarea>
+            @error('body')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+        </div>
+
+        @if($post->image_path)
+            <div class="mb-4">
+                <span class="text-xs text-gray-500 block mb-1">Current featured image:</span>
+                <img src="{{ Storage::url($post->image_path) }}" alt="{{ $post->title }}" class="h-24 rounded border mb-2">
+            </div>
+        @endif
+
+        <div class="mb-4">
+            <label class="block text-gray-700 font-bold mb-2" for="image">Replace Featured Image (optional)</label>
+            <input type="file" name="image" id="image" accept="image/*" class="w-full text-sm text-gray-500">
+            @error('image')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
         </div>
 
         <div class="mb-6 flex items-center space-x-6">
@@ -50,7 +65,7 @@
 <link rel="stylesheet" href="/build/assets/ckeditor-init-BA9sK04e.css">
 <script type="module">
     import('{{ Vite::asset("resources/js/ckeditor-init.js") }}').then(() => {
-        window.initCkEditor('#content', {
+        window.initCkEditor('#body', {
             simpleUpload: {
                 uploadUrl: '{{ route("admin.posts.upload_image") }}',
                 headers: {
@@ -61,5 +76,3 @@
     }).catch(err => console.error('[CKEditor] module load failed', err));
 </script>
 @endpush
-
-

@@ -1,0 +1,70 @@
+$root = "C:\Users\marcl\Desktop\my-website"
+$out = "$env:USERPROFILE\Desktop\project-dump.txt"
+
+$paths = @(
+    # Routes and config
+    "routes\web.php",
+    "routes\auth.php",
+    "vite.config.js",
+    "tailwind.config.js",
+    "package.json",
+    "composer.json",
+    # Controllers
+    "app\Http\Controllers",
+    # Models
+    "app\Models",
+    # View components
+    "app\View\Components",
+    # Layouts
+    "resources\views\layouts",
+    # Public-facing views
+    "resources\views\pages",
+    "resources\views\posts",
+    "resources\views\welcome.blade.php",
+    "resources\views\dashboard.blade.php",
+    # Admin views
+    "resources\views\admin",
+    # Components used by Breeze
+    "resources\views\components",
+    # CSS/JS entry points
+    "resources\css",
+    "resources\js"
+)
+
+$exclude = @(
+    "*.map",
+    "*.min.js",
+    "*.min.css",
+    "ckeditor-init-*.js"  # the 1MB compiled bundle — skip it
+)
+
+"" | Set-Content $out
+
+foreach ($p in $paths) {
+    $full = Join-Path $root $p
+    if (Test-Path $full) {
+        $item = Get-Item $full
+        if ($item.PSIsContainer) {
+            $files = Get-ChildItem $full -Recurse -File -ErrorAction SilentlyContinue
+        } else {
+            $files = @($item)
+        }
+        foreach ($f in $files) {
+            $skip = $false
+            foreach ($ex in $exclude) {
+                if ($f.Name -like $ex) { $skip = $true; break }
+            }
+            if ($skip) { continue }
+            if ($f.Length -gt 200KB) { 
+                Add-Content $out "===== (skipped: $($f.FullName) — file too large) ====="
+                continue
+            }
+            $rel = $f.FullName.Replace("$root\", "")
+            Add-Content $out "`n`n===== FILE: $rel =====`n"
+            Get-Content $f.FullName | Add-Content $out
+        }
+    }
+}
+
+Write-Host "Dump written to: $out"
+Write-Host "Size: $((Get-Item $out).Length) bytes"

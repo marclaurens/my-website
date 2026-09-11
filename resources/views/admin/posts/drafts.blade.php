@@ -1,49 +1,51 @@
-@extends('layouts.app')
-
-@section('title', 'Draft Posts')
+﻿@extends('layouts.admin')
 
 @section('content')
-    <h1>Draft Posts</h1>
+<div class="container mx-auto py-6">
+    <h1 class="text-2xl font-bold mb-6">Draft Posts</h1>
+
+    @if(session('success'))
+        <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
+            {{ session('success') }}
+        </div>
+    @endif
 
     @if ($posts->isEmpty())
-        <p>No drafts available.</p>
+        <div class="bg-white shadow rounded p-6 text-gray-500">
+            No drafts available.
+        </div>
     @else
-        @foreach ($posts as $post)
-            <article style="margin-bottom: 2rem;">
-                @if ($post->image_path)
-                    <img src="{{ Storage::url($post->image_path) }}" alt="{{ $post->title }}" class="post-cover">
-                @endif
+        <div class="space-y-4">
+            @foreach ($posts as $post)
+                <div class="bg-white shadow rounded p-6">
+                    @if ($post->image_path)
+                        <img src="{{ Storage::url($post->image_path) }}" alt="{{ $post->title }}" class="h-32 rounded border mb-3">
+                    @endif
 
-                <h2><a href="{{ route('posts.show', $post) }}">{{ $post->title }}</a></h2>
+                    <h2 class="text-lg font-bold">
+                        <a href="{{ route('admin.posts.show', $post) }}" class="text-gray-800 hover:underline">
+                            {{ $post->title }}
+                        </a>
+                    </h2>
 
-                <p><small>Created {{ $post->created_at->diffForHumans() }}</small></p>
+                    <p class="text-xs text-gray-500 mt-1">Created {{ $post->created_at->diffForHumans() }}</p>
 
-                <div class="post-body">
-                    {!! Str::limit(strip_tags($post->body), 200) !!}
+                    <div class="text-gray-700 mt-2">
+                        {!! Str::limit(strip_tags($post->body), 200) !!}
+                    </div>
+
+                    <div class="flex items-center gap-3 mt-4">
+                        <a href="{{ route('admin.posts.show', $post) }}" class="text-blue-600 hover:underline text-sm font-medium">Preview draft &rarr;</a>
+                        <a href="{{ route('admin.posts.edit', $post) }}" class="text-indigo-600 hover:underline text-sm font-medium">Edit</a>
+                        <form action="{{ route('admin.posts.destroy', $post) }}" method="POST" onsubmit="return confirm('Delete this draft permanently?');" class="inline">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="text-red-600 hover:underline text-sm font-medium">Delete</button>
+                        </form>
+                    </div>
                 </div>
-
-                <p style="margin-top: 1rem;">
-                    <a href="{{ route('posts.show', $post) }}">Preview draft &rarr;</a>
-                </p>
-
-                <hr>
-
-                <div class="actions">
-                    <a href="{{ route('posts.edit', $post) }}" role="button" class="secondary outline">Edit</a>
-
-                    <form action="{{ route('posts.toggle', $post) }}" method="POST" style="margin: 0;">
-                        @csrf
-                        @method('PATCH')
-                        <button type="submit">Publish Now</button>
-                    </form>
-
-                    <form action="{{ route('posts.destroy', $post) }}" method="POST" onsubmit="return confirm('Delete this draft permanently?');" style="margin: 0;">
-                        @csrf
-                        @method('DELETE')
-                        <button type="submit" class="contrast outline">Delete</button>
-                    </form>
-                </div>
-            </article>
-        @endforeach
+            @endforeach
+        </div>
     @endif
+</div>
 @endsection
