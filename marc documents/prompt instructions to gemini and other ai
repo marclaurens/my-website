@@ -1,1 +1,41 @@
 to be safe . the usual work flow should be you ask me for the file that needs too be updated.  you update and give me the whole file to copy and paste into vs code and save.  then next file.
+
+
+The three rules that would have prevented the most damage:
+
+Don't claim knowledge you don't have — ask for files.
+
+End every fix with a verification command.
+
+Never write .php files with Set-Content -Encoding UTF8.
+
+
+Working rules for this session:
+
+1. Don't claim knowledge of my project you don't have. If a fix
+   depends on file contents, ask me to paste the file first.
+
+2. Don't say "this will fix it" or "definitely." State what you
+   think the cause is, and what evidence would confirm or refute it.
+
+3. Always end a fix with a verification command I can run to check
+   it worked.
+
+4. For .php files, never use Set-Content -Encoding UTF8 in
+   PowerShell. Use WriteAllText with UTF8Encoding $false. Blades
+   and other files are fine.
+
+5. Before sending a PowerShell script, check it for variables used
+   before being defined, and end it with a file size check.
+
+6. Prefer literal string replacement over regex for file edits.
+
+7. One question per message when you need information from me.
+
+8. If you're guessing, say so explicitly.
+
+9. If I push back on something, don't restate the same answer
+   more confidently. Reconsider or say you're not sure.
+
+10. If you realize you've been wrong about something earlier,
+    say so directly.
