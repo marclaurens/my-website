@@ -1,0 +1,11 @@
+* [33m46109c5[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m Stop tracking compiled Blade views and storage caches
+* [33mad20370[m Add Insert page link plugin to CKEditor
+[31m|[m * [33me0bb4d0[m[33m ([m[1;31morigin/main[m[33m)[m 
+[31m|[m[31m/[m  
+* [33m1bf3207[m updated project report
+* [33m0b8c334[m Point site-name link at public homepage instead of /dashboard
+* [33m747762d[m Consolidate layouts and migrate admin views to component layout
+* [33m1260fd5[m test commit messages
+* [33m38568fc[m Add dropdown and mobile menu item components
+* [33m7e27e60[m update prompt for ai in marc docs
+* [33m2e76dbf[m more cleanup

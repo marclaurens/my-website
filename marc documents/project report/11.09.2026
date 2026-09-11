@@ -250,6 +250,23 @@ export default defineConfig({
     build: { commonjsOptions: { include: [/ckeditor5/, /node_modules/] } },
 });
 
+Custom plugin: Insert page link
+
+A toolbar button labelled "Insert page link" sits between the Link and Table buttons. Clicking it opens a modal listing all pages (title, slug, and a "(draft)" marker for unpublished pages). Selecting a page inserts a hyperlink at the cursor — or wraps the current selection if text was selected. Links use a relative URL (/page/slug) so they open in the same tab.
+
+Files involved:
+- resources/js/ckeditor-insert-page-plugin.js — the plugin (button + modal picker + link insertion)
+- resources/js/ckeditor-init.js — imports the plugin, adds it to the plugins array, adds 'insertPage' to toolbar.items, and exposes the page list as window.__ckeditorPages
+- Four editor blades (admin/posts/create, admin/posts/edit, admin/pages/create, admin/pages/edit) — build $pagesForEditor inside a @php block and pass pages: @json($pagesForEditor) into the initCkEditor call
+
+How it works:
+- The plugin imports ButtonView from 'ckeditor5' and constructs it with new ButtonView() (no arguments — the constructor does not take a locale).
+- On button click, a fixed-position overlay is appended to document.body containing the page list. No CKEditor DropdownView/ListView/ListItemView is used — those classes exist in @ckeditor/ckeditor5-ui but their constructors did not accept the arguments used in the first attempts, and a plain DOM overlay was simpler and more reliable.
+- Link insertion uses editor.model.change() with writer.createText(title, { linkHref }) for a collapsed selection, or writer.setAttribute('linkHref', url, range) when text is selected.
+- CKEditor's link.addTargetToExternalLinks: true is why absolute URLs got target="_blank". Relative URLs (starting with /) are treated as internal, so no target attribute is added.
+
+Gotcha: CKEditor 5's UI class API differs from what earlier versions of its own documentation suggested. The .d.ts files under node_modules/@ckeditor/ckeditor5-ui/dist/ are the ground truth for constructor signatures. Reading them saved nothing during the original attempt (three wrong guesses were made before consulting them) — read them first next time.
+
 8. Theme / settings system
 
 Settings page: admin/settings/index.blade.php. Form posts to PUT admin.settings.update.
@@ -376,6 +393,9 @@ Layout consolidation:
 Site-name link:
 - Pointed the site-name link at url('/') instead of route('dashboard'). Previously, logged-out visitors clicking the site name on any public page were redirected to /login, because /dashboard is behind auth middleware and immediately redirects to admin.pages.index.
 
+- Added a custom CKEditor plugin "Insert page link" (toolbar button between Link and Table). Opens a modal page picker and inserts a relative hyperlink to the chosen page. New file: resources/js/ckeditor-insert-page-plugin.js. Modified: ckeditor-init.js, the four editor blades.
+- Stopped tracking compiled Blade views and storage caches in git. Added /storage/framework/cache/data, /storage/framework/sessions, /storage/framework/views, /storage/logs to .gitignore and ran git rm -r --cached on storage/framework/views. Previously each view:clear produced ~24 spurious file changes in git status.
+
 12. Working conventions and gotchas
 
 PowerShell BOM trap
@@ -471,11 +491,12 @@ Created (this session):
 - resources/views/partials/menu-item.blade.php
 - resources/views/partials/menu-item-dropdown.blade.php
 - resources/views/partials/menu-item-mobile.blade.php
-- list-files.ps1 (helper — not part of the app)
-- project-files.txt (generated output — not part of the app)
 - resources/views/layouts/base.blade.php
 - app/View/Components/BaseLayout.php
 - app/View/Components/AdminLayout.php
+- resources/js/ckeditor-insert-page-plugin.js
+- list-files.ps1 (helper — not part of the app)
+- project-files.txt (generated output — not part of the app)
 
 Created (earlier sessions):
 - resources/js/ckeditor-init.js
@@ -490,6 +511,12 @@ Modified (this session):
 - resources/views/layouts/app.blade.php (rewritten as thin wrapper)
 - resources/views/layouts/admin.blade.php (rewritten as thin wrapper)
 - All 13 blades under resources/views/admin/ (wrapper changed from @extends/@section to <x-admin-layout>)
+- resources/js/ckeditor-init.js (added Insert page link plugin: import, plugins array, toolbar entry, window.__ckeditorPages)
+- resources/views/admin/posts/create.blade.php
+- resources/views/admin/posts/edit.blade.php
+- resources/views/admin/pages/create.blade.php
+- resources/views/admin/pages/edit.blade.php
+- .gitignore (added /storage/framework/cache/data, /storage/framework/sessions, /storage/framework/views, /storage/logs)
 
 Modified (earlier sessions):
 - vite.config.js, package.json, package-lock.json
@@ -531,6 +558,7 @@ Database migrations applied:
 Untouched:
 - All Breeze controllers, all Breeze components, bootstrap/app.php, config/*, remaining migrations
 
+
 15. Where to start a future session
 
 If the app is working and you're extending it: read the file you're about to modify, then modify it. Don't assume the pattern from another file.
@@ -543,6 +571,8 @@ If you want to change how the menu system works: the flow is: admin/menu/index.b
 
 If you want to change how the theme system works: settings page → partials/theme-vars.blade.php → tailwind.config.js.
 
+If you want to change how the CKEditor Insert page link feature works: resources/js/ckeditor-insert-page-plugin.js (button + modal + insertion logic) → resources/js/ckeditor-init.js (plugin registration + window.__ckeditorPages) → four editor blades ($pagesForEditor @php block feeding @json into the initCkEditor call).
+
 16. If you start a new chat
 
 Paste this report at the top. Then, if you're asking about a specific file, paste that file too. The combination gives the AI the project context and the specific content it needs to reason about — which is far better than asking it to guess from a description.
@@ -550,3 +580,7 @@ Paste this report at the top. Then, if you're asking about a specific file, past
 Also consider turning on any "reasoning" or "deep thinking" mode the interface offers. The project has enough internal contradictions that careful reasoning beats fast pattern-matching.
 
 Critical: on this machine, any file you ask the AI to write should be handed over as a script that uses [System.IO.File]::WriteAllText(..., UTF8Encoding $false), not as content to paste into VS Code. Pasting into VS Code has silently failed four times in this project. Always verify after saving with Get-Item ... | Select-Object Length.
+
+Also: the terminal may be closed between commands. Give one command per message, use semicolons to chain multiple statements if needed, and don't rely on variables persisting from one command to the next unless the shell window is kept open.
+
+Also: use .Replace() (literal string) rather than -replace (regex) for PowerShell file substitutions when the search string contains special characters. Several earlier attempts failed silently because -replace didn't match the escaping.
