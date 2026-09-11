@@ -10,23 +10,24 @@ use App\Models\Setting;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
     public function register(): void
     {
         //
     }
 
-    /**
-     * Bootstrap any application services.
-     */
     public function boot(): void
     {
         View::composer('*', function ($view) {
             if (Schema::hasTable('menu_items')) {
-                $menuItems = MenuItem::with('page')->orderBy('order', 'asc')->get();
-                $view->with('headerMenuItems', $menuItems);
+                $items = MenuItem::with('page')->orderBy('order', 'asc')->get();
+
+                if (!auth()->check()) {
+                    $items = $items
+                        ->reject(fn ($i) => $i->page && $i->page->is_admin_only)
+                        ->values();
+                }
+
+                $view->with('headerMenuItems', MenuItem::buildTree($items));
             } else {
                 $view->with('headerMenuItems', collect());
             }

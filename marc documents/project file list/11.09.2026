@@ -1,0 +1,529 @@
+Project Report — my-website
+Final handover document. Everything learned about this project across the entire session. Written to be pasted at the top of a future chat so work can continue without re-discovery.
+
+Revision 2 — includes the nested menu feature and inline edit added on 2026-09-11.
+
+1. Overview
+A Laravel CMS with a public blog/site and an admin panel. Admin manages pages, blog posts, categories, a navigation menu (now arbitrarily nested), and global theme settings. Content is edited with CKEditor 5 (self-hosted GPL build). Admin authentication uses Laravel Breeze.
+
+2. Environment
+Framework      Laravel 12
+Auth           Laravel Breeze (Blade stack)
+Build          Vite 7.3.6
+CSS            Tailwind CSS v3 + @tailwindcss/forms
+JS             Alpine.js, Axios
+Editor         CKEditor 5 v48.5.0 (npm, GPL build)
+Database       SQLite (database/database.sqlite)
+Local server   php artisan serve at http://127.0.0.1:8000
+OS             Windows
+Shell          PowerShell
+Editor         VS Code
+Project root   C:\Users\marcl\Desktop\my-website
+
+3. Directory map
+
+app/
+├── Http/
+│   ├── Controllers/
+│   │   ├── CategoryController.php
+│   │   ├── Controller.php
+│   │   ├── MenuItemController.php          (routed — index/store/update/destroy)
+│   │   ├── PageController.php              (public + admin — routed)
+│   │   ├── PostController.php              (public + admin — routed, has uploadImage + togglePublish)
+│   │   ├── ProfileController.php
+│   │   ├── Admin/
+│   │   │   └── SettingController.php       (routed)
+│   │   └── Auth/                           (Breeze controllers)
+│   ├── Middleware/
+│   └── Requests/
+├── Models/
+│   ├── Category.php
+│   ├── MenuItem.php                        (has parent_id, children, descendantIds, buildTree)
+│   ├── Page.php
+│   ├── Post.php
+│   ├── Setting.php
+│   └── User.php
+├── Providers/
+│   └── AppServiceProvider.php              (shares $globalSettings + $headerMenuItems — tree, not flat)
+└── View/Components/
+    ├── AppLayout.php                       (renders layouts.app)
+    └── GuestLayout.php
+
+resources/
+├── css/app.css                             (@tailwind base/components/utilities)
+├── js/
+│   ├── app.js                              (Alpine bootstrap)
+│   ├── bootstrap.js                        (Axios)
+│   └── ckeditor-init.js                    (editor initializer)
+└── views/
+    ├── dashboard.blade.php
+    ├── welcome.blade.php
+    ├── admin/
+    │   ├── categories/{create,edit,index}.blade.php
+    │   ├── menu/index.blade.php            (add form + list; each row has inline expandable edit)
+    │   ├── pages/{create,edit,index}.blade.php
+    │   ├── posts/{create,drafts,edit,index,show}.blade.php
+    │   └── settings/index.blade.php
+    ├── auth/                               (Breeze)
+    ├── components/                         (Breeze defaults)
+    ├── layouts/
+    │   ├── admin.blade.php                 (custom admin chrome)
+    │   ├── app.blade.php                   (Breeze — used via <x-app-layout>)
+    │   ├── guest.blade.php
+    │   └── navigation.blade.php            (shared nav — includes partials.menu-item / menu-item-mobile)
+    ├── pages/show.blade.php
+    ├── partials/
+    │   ├── theme-vars.blade.php            (extracted theme CSS — shared by both layouts)
+    │   ├── menu-item.blade.php             (desktop top-level item + dropdown wrapper)
+    │   ├── menu-item-dropdown.blade.php    (recursive: items inside a dropdown)
+    │   └── menu-item-mobile.blade.php      (recursive: mobile hamburger items)
+    ├── posts/{index,show}.blade.php
+    └── profile/                            (Breeze)
+
+Deleted during this project (earlier sessions):
+- app/Http/Controllers/AuthController.php (dead — session-based auth, unused)
+- app/Http/Controllers/Admin/PageController.php (dead — unrouted)
+- app/Http/Controllers/Admin/MenuItemController.php (dead — unrouted)
+- public/js/ckeditor-init.js (obsolete — replaced by Vite build)
+
+Deleted during this session:
+- database/migrations/2026_09_11_2i49_add_slug_to_posts_table.php (junk — malformed filename, duplicate of an already-applied slug column)
+
+4. Routes (routes/web.php)
+
+Public:
+Method   URI                Action                              Name
+GET      /                  closure → welcome
+GET      /page/{slug}       PageController@show                 pages.show
+GET      /posts             PostController@publicIndex          posts.index
+GET      /posts/{slug}      PostController@publicShow           posts.show
+GET      /category/{slug}   PostController@publicByCategory     categories.show
+
+Admin (group: middleware('auth'), prefix('admin'), name('admin.')):
+- Route::resource('pages', PageController::class)
+- Route::post('posts/upload-image', PostController@uploadImage)->name('posts.upload_image')
+- Route::get('posts/drafts', PostController@drafts)->name('posts.drafts')
+- Route::patch('posts/{post}/toggle', PostController@togglePublish)->name('posts.toggle')
+- Route::resource('posts', PostController::class)
+- Route::resource('categories', CategoryController::class)
+- Route::get('/menu', MenuItemController@index)->name('menu.index')
+- Route::post('/menu', MenuItemController@store)->name('menu.store')
+- Route::put('/menu/{menuItem}', MenuItemController@update)->name('menu.update')
+- Route::delete('/menu/{menuItem}', MenuItemController@destroy)->name('menu.destroy')
+- Route::get('/settings', SettingController@index)->name('settings.index')
+- Route::put('/settings', SettingController@update)->name('settings.update')
+
+Breeze:
+- GET /dashboard → redirect to admin.pages.index
+- /profile — edit/update/destroy
+- /auth/* — from routes/auth.php
+
+5. Data model
+
+Model      Table         Columns used by app                                    Notes
+Page       pages         title, slug, content, is_published, is_admin_only     casts booleans
+Post       posts         title, slug, body, is_published, image_path, category_id   slug unique, nullable
+Category   categories    name, slug                                             hasMany posts
+MenuItem   menu_items    title, url, page_id, parent_id, order                  belongsTo Page; belongsTo self (parent); hasMany self (children)
+Setting    settings      key, value                                             key-value store
+User       users         standard Breeze
+
+Important:
+- Post uses `body` for content (not `content`). slug is stored and unique — PostController::store()/update() compute it from title.
+- MenuItem: parent_id is nullable FK to menu_items.id, ON DELETE SET NULL. Deleting a parent promotes its children to top level.
+- MenuItem::order is per-sibling-group ordering (applied via children() relation). Top-level items also ordered by `order`.
+- MenuItem::getTargetUrlAttribute() computes target_url from page_id (via routes) or url, falling back to '#'.
+
+Public URL note: PostController::publicShow($slug) fetches all posts and matches slug (fallback: computes slug from title if the column is empty). Slow at scale — see §14.
+
+6. Layouts
+
+Two parallel layouts. Each is used by a distinct set of pages. Do not mix them.
+
+layouts/admin.blade.php
+- Used by @extends('layouts.admin') + @section('content')
+- Contains an @php block reading $globalSettings (or querying Setting::pluck)
+- @include('partials.theme-vars') renders CSS variables and body/heading styling
+- @include('layouts.navigation'), then @yield('content'), then @stack('scripts')
+- Contains CKEditor content styling and admin-panel-specific CSS
+
+layouts/app.blade.php
+- Used via <x-app-layout> component (App\View\Components\AppLayout)
+- Same @php block, same partial include
+- Uses {{ $slot }} — not @yield('content')
+- Has @isset($header) block for named header slot
+
+Rule: any blade using <x-app-layout> must pass content as a slot. Any blade using @extends('layouts.app') + @section('content') will render blank, because there is no @yield('content') in that layout. Use <x-app-layout> or switch to @extends('layouts.admin').
+
+layouts/navigation.blade.php
+- Shared nav. Uses $globalSettings for site name and header styling, and $headerMenuItems for the dynamic menu (set by AppServiceProvider).
+- $headerMenuItems is now a tree (top-level items with `children` set recursively), NOT a flat collection.
+- Desktop: @include('partials.menu-item', ['item' => $item]) — each top-level item is passed to the partial.
+- Mobile: @include('partials.menu-item-mobile', ['item' => $item, 'depth' => 0]).
+- Admin-only filtering moved into AppServiceProvider (before tree build), so the blade no longer filters.
+
+partials/theme-vars.blade.php
+- Contains raw CSS (no <style> wrapper) that outputs the CSS variables and applies them to body, headings, and .bg-primary/.text-primary/button[type="submit"] etc. Included inside the <style> block of both layouts.
+
+partials/menu-item.blade.php
+- Top-level desktop nav item. If the item has children, renders a wrapper `<div class="relative h-full flex items-center" x-data="{ open: false }">` with hover/focus handling, a chevron toggle button (for touch), and an absolutely-positioned dropdown containing @include('partials.menu-item-dropdown') for each child. If no children, renders a plain <x-nav-link>.
+- Parent renders as link + chevron if it has url/page_id, as button + chevron otherwise.
+
+partials/menu-item-dropdown.blade.php
+- Recursive: items inside a dropdown. If the item has children, opens a submenu to the right on hover. If no children, renders as a simple <a>.
+
+partials/menu-item-mobile.blade.php
+- Recursive: mobile hamburger items. Indented via inline style padding-left: {{ 16 + ($depth * 16) }}px (Tailwind JIT can't see dynamically-built class names). Tap-to-expand for items with children; plain <a> for leaves.
+
+7. CKEditor 5 setup
+
+Installation
+npm install ckeditor5 @ckeditor/ckeditor5-style @ckeditor/ckeditor5-font \
+  @ckeditor/ckeditor5-alignment @ckeditor/ckeditor5-highlight \
+  @ckeditor/ckeditor5-list @ckeditor/ckeditor5-source-editing \
+  @ckeditor/ckeditor5-show-blocks
+All GPL-licensed. No premium packages.
+
+Initializer — resources/js/ckeditor-init.js
+- First two lines (essential): import 'ckeditor5/ckeditor5.css'; import 'ckeditor5/ckeditor5-content.css';
+- licenseKey: 'GPL'
+- Exposes window.initCkEditor(selector, options)
+- Merges options.simpleUpload for image uploads
+- Attaches a form submit listener that syncs editor content back into the <textarea>
+
+Blade pattern (four files)
+@push('scripts')
+<link rel="stylesheet" href="/build/assets/ckeditor-init-<HASH>.css">
+<script type="module">
+    import('{{ Vite::asset("resources/js/ckeditor-init.js") }}').then(() => {
+        window.initCkEditor('#body', {
+            simpleUpload: {
+                uploadUrl: '{{ route("admin.posts.upload_image") }}',
+                headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
+            }
+        }).catch(err => console.error('[CKEditor] init failed', err));
+    }).catch(err => console.error('[CKEditor] module load failed', err));
+</script>
+@endpush
+
+Field targets:
+admin/pages/create.blade.php   #content
+admin/pages/edit.blade.php     #content
+admin/posts/create.blade.php   #body
+admin/posts/edit.blade.php     #body
+
+Why <link> plus dynamic import()
+- Vite splits dynamically imported modules into separate JS and CSS chunks. Loading only the JS leaves the CSS unloaded, and the editor renders with oversized unstyled icons. The explicit <link> on the CSS chunk fixes it.
+
+The <link> hash changes on every npm run build. After a rebuild, update the hash in all four blades:
+
+$manifest = Get-Content public\build\manifest.json -Raw | ConvertFrom-Json
+$css = "/build/" + $manifest.'resources/js/ckeditor-init.js'.css[0]
+$blades = "resources\views\admin\pages\create.blade.php","resources\views\admin\pages\edit.blade.php","resources\views\admin\posts\create.blade.php","resources\views\admin\posts\edit.blade.php"
+foreach ($f in $blades) {
+    $c = Get-Content $f -Raw
+    $c = $c -replace '/build/assets/ckeditor-init-[A-Za-z0-9_-]+\.css', $css
+    [System.IO.File]::WriteAllText((Resolve-Path $f), $c, (New-Object System.Text.UTF8Encoding $false))
+}
+php artisan view:clear
+
+vite.config.js
+import { defineConfig } from 'vite';
+import laravel from 'laravel-vite-plugin';
+
+export default defineConfig({
+    plugins: [
+        laravel({
+            input: [
+                'resources/css/app.css',
+                'resources/js/app.js',
+                'resources/js/ckeditor-init.js'
+            ],
+            refresh: true,
+        }),
+    ],
+    optimizeDeps: { include: ['ckeditor5'] },
+    build: { commonjsOptions: { include: [/ckeditor5/, /node_modules/] } },
+});
+
+8. Theme / settings system
+
+Settings page: admin/settings/index.blade.php. Form posts to PUT admin.settings.update.
+Fields:
+- settings[site_name] — string
+- settings[primary_color] — native color input, default #2563eb
+- settings[accent_color] — default #f59e0b
+- settings[text_color] — default #1f2937
+- settings[header_bg_color] — default #ffffff
+- settings[heading_font], settings[body_font], settings[border_radius], settings[container_width] — dropdowns
+- header_image — file upload
+- remove_header_image — checkbox
+
+How theming works:
+- Settings stored in settings table (key / value).
+- Both layouts read $globalSettings and @include('partials.theme-vars').
+- The partial outputs CSS variables (--primary-color, --accent-color, --text-color, --heading-font, --body-font, --border-radius) and rules for body, headings, and button[type="submit"]/.btn-primary.
+- tailwind.config.js maps classes to variables:
+  - gray.700, gray.900 → var(--text-color)
+  - blue.500, blue.600, blue.700 → var(--primary-color)
+  - indigo.500, indigo.600, indigo.700 → var(--primary-color)
+  - amber.500, amber.600 → var(--accent-color)
+
+What responds to settings:
+- text_color → body copy and headings, and every text-gray-700 / text-gray-900 / bg-gray-700 / bg-gray-900 element
+- primary_color → every bg-blue-600, text-blue-600, bg-indigo-600, text-indigo-600, hover:bg-blue-700, etc. Also button[type="submit"] on admin
+- accent_color → amber-500/amber-600 classes
+- heading_font, body_font → applied to body and h1..h6
+- header_bg_color → used directly in layouts/navigation.blade.php
+
+What does NOT respond: border_radius, container_width.
+
+9. AppServiceProvider
+
+Shares two variables with all views via View::composer('*', ...):
+- $globalSettings — array of all settings (Setting::pluck('value', 'key'))
+- $headerMenuItems — tree of menu items, top-level only, with `children` eager-set recursively
+
+Menu building:
+- Fetches MenuItem::with('page')->orderBy('order')->get()
+- If user is not authenticated, rejects items whose page->is_admin_only is true — before building the tree, so descendants of a hidden node are hidden too.
+- Calls MenuItem::buildTree($items) to produce the tree.
+
+Both writes are guarded by Schema::hasTable() so a fresh install without migrations doesn't crash view rendering.
+
+10. Menu feature (added this session)
+
+Schema:
+- menu_items.parent_id — nullable foreignId, constrained to menu_items.id, nullOnDelete, after('id')
+
+Model (MenuItem):
+- $fillable includes parent_id
+- casts: page_id, parent_id, order → integer
+- parent() — belongsTo self via parent_id
+- children() — hasMany self via parent_id, orderBy('order')
+- descendantIds() — flat array of all descendant ids, walks the loaded `children` relation
+- buildTree(?Collection $items, ?int $parentId) — static, returns a collection of top-level items with `children` set recursively
+
+Controller (MenuItemController):
+- index() — fetches all items, builds tree, flattens to {item, depth} objects for the admin list, passes $flattened and $pages
+- store() — validates title, page_id, url, order, parent_id; clears url if page_id set; creates
+- update() — validates the same fields (all "sometimes"); rejects parent_id that is self or a descendant (cycle prevention); clears url if page_id set
+- destroy() — sets children's parent_id to null (promote to top level), then deletes
+- flatten(Collection $items, int $depth) — protected, recurses into children to produce {item, depth}
+
+Admin UI (admin/menu/index.blade.php):
+- Add form: Link Title, Parent (select), Link to Dynamic Page, Custom URL, Display Order
+- List: each item shown with indentation (padding-left: depth * 24px) and a ↳ marker for nested items
+- Each row has an Edit button that toggles an inline expandable form (Alpine x-data="{ editing: false }") containing all fields, and a Remove button
+- The expanded form's Parent select excludes self and descendants
+- On save, page reloads collapsed with a green flash
+
+Frontend rendering:
+- Top-level items → partials/menu-item.blade.php
+- Items inside dropdowns → partials/menu-item-dropdown.blade.php (recursive)
+- Mobile items → partials/menu-item-mobile.blade.php (recursive, inline padding for indentation)
+- Behavior: hover-open on desktop with focus-within for keyboard; tap-toggle for touch; @click.away to close
+
+11. Everything fixed across the project
+
+Earlier sessions (from Revision 1):
+- invalid-license-key with CDN trial key → moved to self-hosted GPL build
+- window.initCkEditor is not a function → replaced @vite module tag with inline dynamic import()
+- Stale compiled views → removed storage\framework\views\*
+- Old UMD code still in four editor blades → overwritten
+- layouts/app.blade.php referenced a nonexistent /js/ckeditor-init.js → removed
+- Blank <x-app-layout> pages → @yield('content') changed to {{ $slot }}, added @isset($header)
+- CKEditor icons huge → added <link> on the CSS chunk in four blades
+- $accentColor undefined → stale compiled view
+- admin/posts/edit.blade.php loaded the pages edit form → overwritten
+- Global text color setting did nothing → added body { color: var(--text-color); }, mapped Tailwind gray
+- Five admin blades broken (wrong layout + nonexistent routes) → converted to @extends('layouts.admin') with correct admin.* route names
+- Post::$fillable had slug before the column existed → column added via migration, all posts backfilled
+- Post.php wiped by broken PowerShell → restored, no BOM
+- Theme CSS extracted to partials/theme-vars.blade.php; first version had nested <style> tags causing raw CSS to render as text
+- Drafts route was missing → added back with correct ordering
+- Admin PostController::index() filtered to published-only → removed
+- PATCH admin/posts/{post}/toggle route + Publish/Unpublish button added
+- admin/categories/index.blade.php HTML typo → fixed
+- Multiple BOM issues from Set-Content -Encoding UTF8 → fixed with WriteAllText(..., UTF8Encoding $false)
+
+This session (Revision 2):
+- Added parent_id migration, model relations, buildTree, descendantIds
+- Rewrote MenuItemController (index with flatten, store/update/destroy with parent support, cycle prevention)
+- Rewrote AppServiceProvider to build the tree and filter admin-only items before building
+- Created partials/menu-item.blade.php, menu-item-dropdown.blade.php, menu-item-mobile.blade.php
+- Rewrote layouts/navigation.blade.php to use the partials (both desktop and mobile)
+- Rewrote admin/menu/index.blade.php — Parent select on add form, indented list, inline expandable edit, descendant-aware Parent select in each edit form
+- Fixed a subtle vertical alignment issue in the top-level nav item: outer wrapper now has `relative h-full flex items-center`; chevron button lost pt-1
+- Deleted the junk migration 2026_09_11_2i49_add_slug_to_posts_table.php
+
+12. Working conventions and gotchas
+
+PowerShell BOM trap
+Set-Content -Encoding UTF8 writes a byte-order mark (BOM) at the top of the file. For .php files this causes:
+"Namespace declaration statement has to be the very first statement"
+
+For .php — use this instead:
+[System.IO.File]::WriteAllText($path, $content, (New-Object System.Text.UTF8Encoding $false))
+
+For .blade.php, .js, .css, .json — safe with Set-Content.
+
+Verifying no BOM in app/
+Get-ChildItem -Path app -Recurse -Filter *.php | ForEach-Object {
+    $bytes = [System.IO.File]::ReadAllBytes($_.FullName)
+    if ($bytes.Length -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF) {
+        Write-Host "BOM found: $($_.FullName)"
+    }
+}
+Empty output = clean.
+
+Paste reliability trap (important — new this session)
+On this machine, pasting file content into VS Code has been unreliable in three distinct ways:
+1. The paste seems to take, but the file is saved empty (0 bytes). Happened with list-files.ps1 the first time.
+2. The paste lands but saving is never done, so the old content stays on disk. Happened with the empty migration stub.
+3. The paste duplicates content (old + new concatenated), producing a file roughly double the expected size. Happened once with admin/menu/index.blade.php (16149 bytes for a 7500-byte file).
+
+Rule: after every save, verify with:
+Get-Item .\path\to\file | Select-Object Length, LastWriteTime
+If Length is 0, or wildly different from expected, the save didn't go right.
+
+Most reliable write method on this machine:
+$utf8NoBom = New-Object System.Text.UTF8Encoding $false
+[System.IO.File]::WriteAllText($path, $content, $utf8NoBom)
+Write-Host ("Written. Size: " + (Get-Item $path).Length + " bytes")
+Where $content is a here-string (@" ... "@) containing the file body.
+
+Layout rule
+@extends('layouts.admin') + @section('content')  → admin pages
+<x-app-layout> + <x-slot name="header">          → public pages
+@extends('layouts.app') + @section('content')     → does not work (no @yield('content') in that layout)
+
+Blade cache
+After editing a blade:
+php artisan view:clear
+
+If changes still don't appear:
+Remove-Item -Recurse -Force storage\framework\views\* -ErrorAction SilentlyContinue
+php artisan optimize:clear
+
+Server restart
+php artisan serve (PHP's built-in server) caches loaded controller classes. After editing a controller, restart the server. Blades don't need this.
+
+Migration gotcha (new this session)
+A migration file with an empty up() body will "run" successfully and get recorded in the migrations table while doing nothing. This is how a stub file behaved — Laravel ran it, recorded it as batch 5, and the column was never created. Symptom: migrate:status says Ran, but Schema::hasColumn returns false.
+
+Fix:
+php artisan tinker
+DB::table('migrations')->where('migration', 'NAME')->delete();
+exit
+php artisan migrate
+
+Also: a migration file with a malformed timestamp (e.g. 2026_09_11_2i49_..., where `i` is not a digit) still runs — Laravel sorts by filename as a string, not by parsing the date. It will attempt to run in whatever position the string sorts to.
+
+Verify after migrating:
+php artisan tinker
+dump(Schema::hasColumn('table', 'column'));  // true expected
+exit
+
+File naming trap
+Three create.blade.php files exist (pages/, posts/, categories/). Same for edit.blade.php. VS Code tabs show only the filename. Use Ctrl+P and type part of the path, or expand the folder and click from inside it.
+
+Debugging blank pages
+View Page Source (Ctrl+U) first, before opening DevTools. Laravel fatals show as empty HTML with no console error. The php artisan serve terminal prints the request line even when Laravel logs nothing.
+
+13. Known remaining issues
+
+Issue                                                                    Impact                                                          Fix
+CKEditor CSS <link> hash hardcoded in 4 blades                          Editor unstyled after every npm run build                       Update hash (script in §7)
+PostController::publicShow() scans all posts in PHP                     Slow with many posts                                            Change to Post::where('slug', $slug)->where('is_published', true)->firstOrFail()
+admin/settings/index.blade.php has container_width and border_radius    Settings saved but no visual effect                             Wire them up, or remove from the form
+admin/posts/drafts.blade.php exists and is routed, but /admin/posts     Redundant                                                       Either delete drafts.blade.php and its route, or keep as a filtered view
+  now shows drafts too
+admin/categories/create.blade.php not touched                           May still use <x-app-layout> or wrong routes                    Check if it renders correctly
+admin/menu/index.blade.php — validation errors don't re-open the        User has to click Edit again after a rejected save              Small: use old('parent_id') or a session flash to re-open
+  offending row after a failed update
+MenuItem — item with no url, no page, and no children renders as         Dead link in nav                                                Hide such items, or flag in admin
+  <a href="#">
+MenuItem — "order" is global, not per-sibling, in buildTree's sort      Reordering within a group works because children() re-sorts     Fine as-is; note if it ever misbehaves
+bootstrap/app.php, config/app.php, remaining migrations not reviewed    Unknown                                                         Share when relevant
+
+14. Files modified or created across the whole project
+
+Created (this session):
+- database/migrations/2026_09_11_120601_add_parent_id_to_menu_items_table.php
+- resources/views/partials/menu-item.blade.php
+- resources/views/partials/menu-item-dropdown.blade.php
+- resources/views/partials/menu-item-mobile.blade.php
+- list-files.ps1 (helper — not part of the app)
+- project-files.txt (generated output — not part of the app)
+
+Created (earlier sessions):
+- resources/js/ckeditor-init.js
+- resources/views/partials/theme-vars.blade.php
+
+Modified (this session):
+- app/Models/MenuItem.php
+- app/Http/Controllers/MenuItemController.php
+- app/Providers/AppServiceProvider.php
+- resources/views/layouts/navigation.blade.php
+- resources/views/admin/menu/index.blade.php
+
+Modified (earlier sessions):
+- vite.config.js, package.json, package-lock.json
+- tailwind.config.js
+- routes/web.php
+- app/Http/Controllers/PostController.php
+- app/Models/Post.php
+- resources/views/layouts/admin.blade.php
+- resources/views/layouts/app.blade.php
+- resources/views/admin/pages/create.blade.php
+- resources/views/admin/pages/edit.blade.php
+- resources/views/admin/posts/create.blade.php
+- resources/views/admin/posts/edit.blade.php
+- resources/views/admin/posts/index.blade.php
+- resources/views/admin/posts/drafts.blade.php
+- resources/views/admin/posts/show.blade.php
+- resources/views/admin/categories/index.blade.php
+- resources/views/admin/categories/edit.blade.php
+- resources/views/admin/settings/index.blade.php
+
+Deleted (this session):
+- database/migrations/2026_09_11_2i49_add_slug_to_posts_table.php
+
+Deleted (earlier sessions):
+- public/js/ckeditor-init.js
+- app/Http/Controllers/AuthController.php
+- app/Http/Controllers/Admin/PageController.php
+- app/Http/Controllers/Admin/MenuItemController.php
+
+Database migrations applied:
+- All original tables (users, cache, jobs, posts, categories, pages, menu_items, settings)
+- add_is_published_to_posts_table
+- add_image_path_to_posts_table
+- add_category_id_to_posts_table
+- add_is_admin_only_to_pages_table
+- add_slug_to_posts_table (column exists; file deleted)
+- add_parent_id_to_menu_items_table (this session)
+
+Untouched:
+- All Breeze controllers, all Breeze components, bootstrap/app.php, config/*, remaining migrations
+
+15. Where to start a future session
+
+If the app is working and you're extending it: read the file you're about to modify, then modify it. Don't assume the pattern from another file.
+
+If something is broken: paste the exact error, the file it points to, and any log output. That's usually enough to diagnose.
+
+If you want to keep cleaning: the table in §13 lists what's left. None of it is urgent.
+
+If you want to change how the menu system works: the flow is: admin/menu/index.blade.php (UI) → MenuItemController (validation + persistence) → MenuItem model (relations, buildTree, descendantIds) → AppServiceProvider (tree build + admin-only filter) → partials/menu-item*.blade.php (rendering).
+
+If you want to change how the theme system works: settings page → partials/theme-vars.blade.php → tailwind.config.js.
+
+16. If you start a new chat
+
+Paste this report at the top. Then, if you're asking about a specific file, paste that file too. The combination gives the AI the project context and the specific content it needs to reason about — which is far better than asking it to guess from a description.
+
+Also consider turning on any "reasoning" or "deep thinking" mode the interface offers. The project has enough internal contradictions that careful reasoning beats fast pattern-matching.
+
+Critical: on this machine, any file you ask the AI to write should be handed over as a script that uses [System.IO.File]::WriteAllText(..., UTF8Encoding $false), not as content to paste into VS Code. Pasting into VS Code has silently failed four times in this project. Always verify after saving with Get-Item ... | Select-Object Length.

@@ -1,9 +1,9 @@
 @php
     $headerBgColor = $globalSettings['header_bg_color'] ?? '#ffffff';
     $headerImage = $globalSettings['header_image'] ?? null;
-    
-    $headerStyle = $headerImage 
-        ? "background-image: url('" . asset('storage/' . $headerImage) . "'); background-size: cover; background-position: center;" 
+
+    $headerStyle = $headerImage
+        ? "background-image: url('" . asset('storage/' . $headerImage) . "'); background-size: cover; background-position: center;"
         : "background-color: {$headerBgColor};";
 @endphp
 
@@ -28,15 +28,7 @@
                     <!-- Dynamic Menu Items (Frontend) -->
                     @isset($headerMenuItems)
                         @foreach($headerMenuItems as $item)
-                            @php
-                                $page = $item->page;
-                                if ($page && $page->is_admin_only && !auth()->check()) {
-                                    continue;
-                                }
-                            @endphp
-                            <x-nav-link :href="$item->target_url" :active="request()->url() == $item->target_url">
-                                {{ $item->title ?? optional($item->page)->title }}
-                            </x-nav-link>
+                            @include('partials.menu-item', ['item' => $item])
                         @endforeach
                     @endisset
 
@@ -127,15 +119,7 @@
 
             @isset($headerMenuItems)
                 @foreach($headerMenuItems as $item)
-                    @php
-                        $page = $item->page;
-                        if ($page && $page->is_admin_only && !auth()->check()) {
-                            continue;
-                        }
-                    @endphp
-                    <x-responsive-nav-link :href="$item->target_url" :active="request()->url() == $item->target_url">
-                        {{ $item->title ?? optional($item->page)->title }}
-                    </x-responsive-nav-link>
+                    @include('partials.menu-item-mobile', ['item' => $item, 'depth' => 0])
                 @endforeach
             @endisset
 
