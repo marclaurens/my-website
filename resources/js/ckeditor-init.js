@@ -1,4 +1,4 @@
-﻿import 'ckeditor5/ckeditor5.css';
+import 'ckeditor5/ckeditor5.css';
 import 'ckeditor5/ckeditor5-content.css';
 /**
  * Shared CKEditor 5 initializer â€” self-hosted GPL build.
@@ -51,6 +51,8 @@ import { FontFamily, FontSize, FontColor, FontBackgroundColor } from '@ckeditor/
 import { Alignment } from '@ckeditor/ckeditor5-alignment';
 import { Highlight } from '@ckeditor/ckeditor5-highlight';
 
+import InsertPagePlugin from './ckeditor-insert-page-plugin.js';
+
 const LICENSE_KEY = 'GPL';
 
 window.initCkEditor = function (selector, options) {
@@ -70,7 +72,8 @@ window.initCkEditor = function (selector, options) {
         Superscript, Table, TableCaption, TableToolbar, TextTransformation,
         TodoList, Underline, ShowBlocks, SourceEditing,
         Style, FontFamily, FontSize, FontColor, FontBackgroundColor,
-        Alignment, Highlight
+        Alignment, Highlight,
+        InsertPagePlugin
     ];
 
     const config = {
@@ -84,7 +87,7 @@ window.initCkEditor = function (selector, options) {
                 'heading', 'style', '|',
                 'fontSize', 'fontFamily', 'fontColor', 'fontBackgroundColor', '|',
                 'bold', 'italic', 'underline', '|',
-                'link', 'insertTable', 'highlight', 'blockQuote', 'codeBlock', '|',
+                'link', 'insertPage', 'insertTable', 'highlight', 'blockQuote', 'codeBlock', '|',
                 'alignment', '|',
                 'bulletedList', 'numberedList', 'todoList', 'outdent', 'indent'
             ],
@@ -140,6 +143,10 @@ window.initCkEditor = function (selector, options) {
             contentToolbar: ['tableColumn', 'tableRow', 'mergeTableCells']
         }
     };
+
+    if (options.pages) {
+        window.__ckeditorPages = options.pages;
+    }
 
     if (options.simpleUpload) {
         config.simpleUpload = options.simpleUpload;

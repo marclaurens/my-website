@@ -37,9 +37,15 @@
 
     @push('scripts')
 <link rel="stylesheet" href="/build/assets/ckeditor-init-BA9sK04e.css">
+        @php
+            $pagesForEditor = \App\Models\Page::orderBy('title')->get()->map(function ($p) {
+                return ['title' => $p->title, 'slug' => $p->slug, 'url' => '/page/' . $p->slug, 'published' => (bool) $p->is_published];
+            })->values()->all();
+        @endphp
 <script type="module">
     import('{{ Vite::asset("resources/js/ckeditor-init.js") }}').then(() => {
         window.initCkEditor('#content', {
+            pages: @json($pagesForEditor),
             simpleUpload: {
                 uploadUrl: '{{ route("admin.posts.upload_image") }}',
                 headers: {

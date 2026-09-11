@@ -9,37 +9,39 @@
 <?php endif; ?>
 <?php $component->withAttributes([]); ?>
 <div class="container mx-auto py-6">
-    <h1 class="text-2xl font-bold mb-6">Create New Page</h1>
+    <h1 class="text-2xl font-bold mb-6">Edit Page</h1>
 
-    <form action="<?php echo e(route('admin.pages.store')); ?>" method="POST" class="bg-white p-6 rounded shadow">
+    <form action="<?php echo e(route('admin.pages.update', $page->id)); ?>" method="POST" class="bg-white p-6 rounded shadow">
         <?php echo csrf_field(); ?>
+        <?php echo method_field('PUT'); ?>
+
         <div class="mb-4">
             <label class="block text-gray-700 font-bold mb-2" for="title">Title</label>
-            <input type="text" name="title" id="title" value="<?php echo e(old('title')); ?>" class="w-full border rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+            <input type="text" name="title" id="title" value="<?php echo e(old('title', $page->title)); ?>" class="w-full border rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-500" required>
         </div>
 
         <div class="mb-4">
-            <label class="block text-gray-700 font-bold mb-2" for="slug">Slug (Optional)</label>
-            <input type="text" name="slug" id="slug" value="<?php echo e(old('slug')); ?>" class="w-full border rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="leave-empty-to-auto-generate">
+            <label class="block text-gray-700 font-bold mb-2" for="slug">Slug</label>
+            <input type="text" name="slug" id="slug" value="<?php echo e(old('slug', $page->slug)); ?>" class="w-full border rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
         </div>
 
         <div class="mb-4">
             <label class="block text-gray-700 font-bold mb-2" for="content">Content</label>
-            <textarea name="content" id="content"><?php echo e(old('content')); ?></textarea>
+            <textarea name="content" id="content"><?php echo e(old('content', $page->content)); ?></textarea>
         </div>
 
         <div class="mb-6 flex items-center space-x-6">
             <label class="inline-flex items-center">
-                <input type="checkbox" name="is_published" id="is_published" value="1" checked class="mr-2 h-4 w-4 text-blue-600 border-gray-300 rounded">
-                <span class="text-gray-700 font-medium">Publish immediately</span>
+                <input type="checkbox" name="is_published" id="is_published" value="1" <?php echo e(old('is_published', $page->is_published) ? 'checked' : ''); ?> class="mr-2 h-4 w-4 text-blue-600 border-gray-300 rounded">
+                <span class="text-gray-700 font-medium">Published</span>
             </label>
             <label class="inline-flex items-center">
-                <input type="checkbox" name="is_admin_only" id="is_admin_only" value="1" <?php echo e(old('is_admin_only') ? 'checked' : ''); ?> class="mr-2 h-4 w-4 text-purple-600 border-gray-300 rounded">
+                <input type="checkbox" name="is_admin_only" id="is_admin_only" value="1" <?php echo e(old('is_admin_only', $page->is_admin_only) ? 'checked' : ''); ?> class="mr-2 h-4 w-4 text-purple-600 border-gray-300 rounded">
                 <span class="text-gray-700 font-medium">Admin Only (Restricted)</span>
             </label>
         </div>
 
-        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded">Save Page</button>
+        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded">Update Page</button>
         <a href="<?php echo e(route('admin.pages.index')); ?>" class="ml-2 text-gray-600 hover:underline">Cancel</a>
     </form>
 </div>
@@ -75,4 +77,4 @@
 <?php $component = $__componentOriginal91fdd17964e43374ae18c674f95cdaa3; ?>
 <?php unset($__componentOriginal91fdd17964e43374ae18c674f95cdaa3); ?>
 <?php endif; ?>
-<?php /**PATH C:\Users\marcl\Desktop\my-website\resources\views/admin/pages/create.blade.php ENDPATH**/ ?>
+<?php /**PATH C:\Users\marcl\Desktop\my-website\resources\views/admin/pages/edit.blade.php ENDPATH**/ ?>
