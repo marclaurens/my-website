@@ -1,8 +1,8 @@
 Project Report — my-website
-A complete handover document. Written to be pasted at the top of a future chat so work can continue without re-discovery.
+Final handover document. Everything learned about this project across the entire session. Written to be pasted at the top of a future chat so work can continue without re-discovery.
 
 1. Overview
-A Laravel CMS with a public-facing site and an admin panel. The admin manages pages, blog posts, categories, a navigation menu builder, and global look-and-feel settings. Content is edited with CKEditor 5 (self-hosted, GPL build). Admin authentication is Laravel Breeze.
+A Laravel CMS with a public blog/site and an admin panel. Admin manages pages, blog posts, categories, a navigation menu, and global theme settings. Content is edited with CKEditor 5 (self-hosted GPL build). Admin authentication uses Laravel Breeze.
 
 2. Environment
 Framework	Laravel 12
@@ -15,22 +15,20 @@ Database	SQLite (database/database.sqlite)
 Local server	php artisan serve at http://127.0.0.1:8000
 OS	Windows
 Shell	PowerShell
+Editor	VS Code
 Project root	C:\Users\marcl\Desktop\my-website
 3. Directory map
 text
 app/
 ├── Http/
 │   ├── Controllers/
-│   │   ├── AuthController.php              (dead code — session-based, unrouted)
 │   │   ├── CategoryController.php
 │   │   ├── Controller.php
 │   │   ├── MenuItemController.php
 │   │   ├── PageController.php              (public + admin — routed)
-│   │   ├── PostController.php              (public + admin — routed, has uploadImage)
+│   │   ├── PostController.php              (public + admin — routed, has uploadImage + togglePublish)
 │   │   ├── ProfileController.php
 │   │   ├── Admin/
-│   │   │   ├── MenuItemController.php      (dead code — unrouted)
-│   │   │   ├── PageController.php          (dead code — unrouted)
 │   │   │   └── SettingController.php       (routed)
 │   │   └── Auth/                           (Breeze controllers)
 │   ├── Middleware/
@@ -43,7 +41,7 @@ app/
 │   ├── Setting.php
 │   └── User.php
 ├── Providers/
-│   └── AppServiceProvider.php              (shares $globalSettings + $headerMenuItems with views — see §9)
+│   └── AppServiceProvider.php              (shares $globalSettings + $headerMenuItems with views)
 └── View/Components/
     ├── AppLayout.php                       (renders layouts.app)
     └── GuestLayout.php
@@ -53,7 +51,7 @@ resources/
 ├── js/
 │   ├── app.js                              (Alpine bootstrap)
 │   ├── bootstrap.js                        (Axios)
-│   └── ckeditor-init.js                    (editor initializer — see §7)
+│   └── ckeditor-init.js                    (editor initializer)
 └── views/
     ├── dashboard.blade.php
     ├── welcome.blade.php
@@ -71,8 +69,19 @@ resources/
     │   ├── guest.blade.php
     │   └── navigation.blade.php            (shared nav)
     ├── pages/show.blade.php
+    ├── partials/theme-vars.blade.php       (extracted theme CSS — shared by both layouts)
     ├── posts/{index,show}.blade.php
     └── profile/                            (Breeze)
+Deleted during this project:
+
+app/Http/Controllers/AuthController.php (dead — session-based auth, unused)
+
+app/Http/Controllers/Admin/PageController.php (dead — unrouted)
+
+app/Http/Controllers/Admin/MenuItemController.php (dead — unrouted)
+
+public/js/ckeditor-init.js (obsolete — replaced by Vite build)
+
 4. Routes (routes/web.php)
 Public:
 
@@ -84,9 +93,17 @@ GET	/posts/{slug}	PostController@publicShow	posts.show
 GET	/category/{slug}	PostController@publicByCategory	categories.show
 Admin (group: middleware('auth'), prefix('admin'), name('admin.')):
 
-Resource: pages, posts, categories
+GET /admin/pages etc. — Route::resource('pages', PageController::class)
 
-POST posts/upload-image → PostController@uploadImage (name admin.posts.upload_image)
+Route::get('posts/drafts', [PostController::class, 'drafts'])->name('posts.drafts') — before the resource
+
+PATCH posts/{post}/toggle → PostController@togglePublish — name admin.posts.toggle — before the resource
+
+POST posts/upload-image → PostController@uploadImage — name admin.posts.upload_image
+
+Route::resource('posts', PostController::class)
+
+Route::resource('categories', CategoryController::class)
 
 Menu: GET/POST/PUT/DELETE /menu
 
@@ -96,47 +113,52 @@ Breeze:
 
 GET /dashboard → redirect to admin.pages.index
 
-/profile — inline closures for edit/update/destroy
+/profile — edit/update/destroy
 
 /auth/* — from routes/auth.php
 
 5. Data model
 Model	Table	Columns used by app	Notes
 Page	pages	title, slug, content, is_published, is_admin_only	casts booleans
-Post	posts	title, body, is_published, image_path, category_id	no slug column
+Post	posts	title, slug, body, is_published, image_path, category_id	slug unique, nullable
 Category	categories	name, slug	hasMany posts
 MenuItem	menu_items	title, url, page_id, order	belongsTo Page; accessor target_url
 Setting	settings	key, value	key-value store
 User	users	standard Breeze	
-Post has no slug column. publicShow() compensates by computing slug from title at read time. PostController::store()/update() still compute a slug value, but it's silently dropped because it's not in $fillable. Stable slugs would need a migration.
+Important: Post uses body for content (not content). slug is stored and unique — PostController::store()/update() compute it from title.
+
+Public URL note: publicShow($slug) fetches all posts and matches slug (as a fallback it also computes slug from title if the slug column is empty).
 
 6. Layouts
-Two parallel layouts. This is the main source of confusion in the project.
+Two parallel layouts. Each is used by a distinct set of pages. Do not mix them.
 
 layouts/admin.blade.php
 Used by @extends('layouts.admin') + @section('content')
 
-Contains the settings @php block that reads $globalSettings (or queries Setting::pluck) and defines CSS variables
+Contains an @php block reading $globalSettings (or querying Setting::pluck)
 
-Renders @include('layouts.navigation'), then @yield('content'), then @stack('scripts')
+@include('partials.theme-vars') renders CSS variables and body/heading styling
 
-Contains CKEditor .ck-content styling and admin-panel-specific CSS (button[type="submit"] uses --primary-color)
+@include('layouts.navigation'), then @yield('content'), then @stack('scripts')
+
+Contains CKEditor content styling and admin-panel-specific CSS
 
 layouts/app.blade.php
-Used via <x-app-layout> (App\View\Components\AppLayout)
+Used via <x-app-layout> component (App\View\Components\AppLayout)
 
-Same settings @php block
+Same @php block, same partial include
 
 Uses {{ $slot }} — not @yield('content')
 
 Has @isset($header) block for named header slot
 
-Renders @include('layouts.navigation'), then slot content, then @stack('scripts')
-
-Critical rule: any blade using <x-app-layout> must pass content as a slot (not sections). Any blade using @extends('layouts.app') + @section('content') will render blank, because there is no @yield('content') in that layout anymore.
+Rule: any blade using <x-app-layout> must pass content as a slot. Any blade using @extends('layouts.app') + @section('content') will render blank, because there is no @yield('content') in that layout. Use <x-app-layout> or switch to @extends('layouts.admin').
 
 layouts/navigation.blade.php
-Shared nav. Uses $globalSettings for site name and header styling, and $headerMenuItems for the dynamic menu (set by AppServiceProvider, presumably).
+Shared nav. Uses $globalSettings for site name and header styling, and $headerMenuItems for the dynamic menu (set by AppServiceProvider).
+
+partials/theme-vars.blade.php
+Contains raw CSS (no <style> wrapper) that outputs the CSS variables and applies them to body, headings, and .bg-primary/.text-primary/button[type="submit"] etc. Included inside the <style> block of both layouts.
 
 7. CKEditor 5 setup
 Installation
@@ -145,23 +167,23 @@ npm install ckeditor5 @ckeditor/ckeditor5-style @ckeditor/ckeditor5-font \
   @ckeditor/ckeditor5-alignment @ckeditor/ckeditor5-highlight \
   @ckeditor/ckeditor5-list @ckeditor/ckeditor5-source-editing \
   @ckeditor/ckeditor5-show-blocks
+All GPL-licensed. No premium packages.
+
 Initializer — resources/js/ckeditor-init.js
-First two lines are the essential CSS imports:
+First two lines (essential):
 
 js
 import 'ckeditor5/ckeditor5.css';
 import 'ckeditor5/ckeditor5-content.css';
-Without these, the editor renders with oversized unstyled icons.
-
-Uses licenseKey: 'GPL' (valid for self-hosted GPL build)
+licenseKey: 'GPL'
 
 Exposes window.initCkEditor(selector, options)
 
-Merges options.simpleUpload into the config for image uploads
+Merges options.simpleUpload for image uploads
 
 Attaches a form submit listener that syncs editor content back into the <textarea>
 
-Full toolbar: undo/redo, sourceEditing, showBlocks, heading, style, fontSize, fontFamily, fontColor, fontBackgroundColor, bold, italic, underline, link, insertTable, highlight, blockQuote, codeBlock, alignment, lists, indent/outdent
+Full toolbar
 
 Blade pattern (four files)
 blade
@@ -186,17 +208,20 @@ admin/pages/edit.blade.php	#content
 admin/posts/create.blade.php	#body
 admin/posts/edit.blade.php	#body
 Why <link> plus dynamic import()
-Vite splits dynamically imported modules into separate JS and CSS chunks. Loading only the JS leaves the CSS unloaded. The explicit <link> on the CSS chunk fixes it.
+Vite splits dynamically imported modules into separate JS and CSS chunks. Loading only the JS leaves the CSS unloaded, and the editor renders with oversized unstyled icons. The explicit <link> on the CSS chunk fixes it.
 
-The <link> hash changes on every npm run build. After a rebuild, update the hash in all four blades.
+The <link> hash changes on every npm run build. After a rebuild, update the hash in all four blades:
 
-Build output
-public/build/assets/ckeditor-init-<HASH>.js (~1.1 MB)
-
-public/build/assets/ckeditor-init-<HASH>.css (~219 KB)
-
-Current hash at time of writing: ckeditor-init-BA9sK04e.css
-
+powershell
+$manifest = Get-Content public\build\manifest.json -Raw | ConvertFrom-Json
+$css = "/build/" + $manifest.'resources/js/ckeditor-init.js'.css[0]
+$blades = "resources\views\admin\pages\create.blade.php","resources\views\admin\pages\edit.blade.php","resources\views\admin\posts\create.blade.php","resources\views\admin\posts\edit.blade.php"
+foreach ($f in $blades) {
+    $c = Get-Content $f -Raw
+    $c = $c -replace '/build/assets/ckeditor-init-[A-Za-z0-9_-]+\.css', $css
+    [System.IO.File]::WriteAllText((Resolve-Path $f), $c, (New-Object System.Text.UTF8Encoding $false))
+}
+php artisan view:clear
 vite.config.js
 js
 import { defineConfig } from 'vite';
@@ -216,7 +241,7 @@ export default defineConfig({
     optimizeDeps: { include: ['ckeditor5'] },
     build: { commonjsOptions: { include: [/ckeditor5/, /node_modules/] } },
 });
-8. Settings / theming
+8. Theme / settings system
 Settings page
 admin/settings/index.blade.php. Form posts to PUT admin.settings.update. Fields:
 
@@ -230,101 +255,84 @@ settings[text_color] — default #1f2937
 
 settings[header_bg_color] — default #ffffff
 
-settings[heading_font] — dropdown
-
-settings[body_font] — dropdown
-
-settings[border_radius] — dropdown
-
-settings[container_width] — dropdown
+settings[heading_font], settings[body_font], settings[border_radius], settings[container_width] — dropdowns
 
 header_image — file upload
 
 remove_header_image — checkbox
 
-How theming flows
-Settings are stored in the settings table (key/value).
+How theming works
+Settings stored in settings table (key / value).
 
-Both layouts read $settings in an @php block and output CSS variables in a <style> tag:
+Both layouts read $settings and @include('partials.theme-vars').
 
-css
-:root {
-    --primary-color: ...;
-    --accent-color: ...;
-    --text-color: ...;
-    --heading-font: ...;
-    --body-font: ...;
-    --border-radius: ...;
-}
-Both layouts now contain:
+The partial outputs CSS variables (--primary-color, --accent-color, --text-color, --heading-font, --body-font, --border-radius) and rules:
 
 css
-body {
-    color: var(--text-color);
-    font-family: var(--body-font);
-}
-h1, h2, h3, h4, h5, h6 {
-    font-family: var(--heading-font);
-}
-tailwind.config.js maps gray.700 and gray.900 to var(--text-color):
+body { color: var(--text-color); font-family: var(--body-font); }
+h1..h6 { font-family: var(--heading-font); }
+button[type="submit"], .btn-primary { background-color: var(--primary-color) !important; }
+tailwind.config.js maps classes to variables:
 
-js
-colors: {
-    gray: {
-        50:  '#f9fafb',
-        100: '#f3f4f6',
-        200: '#e5e7eb',
-        300: '#d1d5db',
-        400: '#9ca3af',
-        500: '#6b7280',
-        600: '#4b5563',
-        700: 'var(--text-color)',
-        800: '#1f2937',
-        900: 'var(--text-color)',
-        950: '#030712',
-    },
-}
-Effect: changing text_color in settings updates body copy and headings site-wide (public and admin), because most copy uses text-gray-700 / text-gray-900.
+gray.700, gray.900 → var(--text-color)
 
-Not wired up: primary_color, accent_color, border_radius, container_width are declared as CSS variables but no elements read them, except button[type="submit"] { background-color: var(--primary-color); } on admin pages.
+blue.500, blue.600, blue.700 → var(--primary-color)
 
-9. AppServiceProvider (inferred)
-I have not seen this file. From behavior, it shares two variables with all views:
+indigo.500, indigo.600, indigo.700 → var(--primary-color)
+
+amber.500, amber.600 → var(--accent-color)
+
+What now responds to settings:
+
+text_color → body copy and headings, and every text-gray-700 / text-gray-900 / bg-gray-700 / bg-gray-900 element
+
+primary_color → every bg-blue-600, text-blue-600, bg-indigo-600, text-indigo-600, hover:bg-blue-700, etc. Also button[type="submit"] on admin
+
+accent_color → amber-500/amber-600 classes
+
+heading_font, body_font → applied to body and h1..h6
+
+What does NOT respond: border_radius, container_width, header_bg_color (this one is used in layouts/navigation.blade.php directly).
+
+9. AppServiceProvider (inferred, not seen)
+From behavior, it shares two variables with all views:
 
 $globalSettings — array of all settings
 
 $headerMenuItems — menu items for the navigation
 
-If you share this file at the start of a future session, the picture becomes complete.
+If you share this file at the start of a future session, the picture is complete.
 
 10. Everything fixed during this project
-Ordered roughly chronologically.
+Initial CKEditor work:
 
-CKEditor invalid-license-key — trial key on the CDN wasn't valid. Solution: self-host GPL build via npm.
+invalid-license-key with CDN trial key → moved to self-hosted GPL build.
 
-window.initCkEditor is not a function — the <script type="module" src> tag emitted by @vite was not executing in the browser. Replaced with an inline <script type="module"> doing a dynamic import() of the built file. Verified by testing the import from the console.
+window.initCkEditor is not a function → the <script type="module" src> tag emitted by @vite wasn't executing; replaced with inline <script type="module"> that does a dynamic import().
 
-Stale compiled views in storage/framework/views/ — view:clear was sometimes not enough. Needed Remove-Item -Recurse -Force storage\framework\views\*.
+Stale compiled views → Remove-Item -Recurse -Force storage\framework\views\*.
 
-Old UMD code still in blades — four editor blades had CDN-era code. Overwritten.
+Old UMD code still in four editor blades → overwritten.
 
-layouts/app.blade.php still referenced /js/ckeditor-init.js (a deleted file). Removed.
+layouts/app.blade.php referenced a nonexistent /js/ckeditor-init.js → removed.
 
-Blank pages on <x-app-layout> pages — layout used @yield('content'), but <x-app-layout> passes content as $slot. Changed to {{ $slot }} and added @isset($header).
+Blank <x-app-layout> pages → @yield('content') changed to {{ $slot }}, added @isset($header).
 
-CKEditor icons huge / toolbar vertical — Vite splits dynamic imports into JS + CSS chunks. Added explicit <link> on the CSS chunk in four blades.
+CKEditor icons huge → added <link> on the CSS chunk in four blades (Vite splits dynamic imports).
 
-$accentColor undefined — stale compiled view.
+$accentColor undefined → stale compiled view.
 
-admin/posts/edit.blade.php loaded the pages edit form — referenced $page instead of $post. Overwritten.
+admin/posts/edit.blade.php loaded the pages edit form → overwritten.
 
-Global text color setting did nothing — CSS variable declared but no rule used it. Added body { color: var(--text-color); } to both layouts and mapped Tailwind gray-700/gray-900 to the variable in tailwind.config.js.
+Global text color setting did nothing → added body { color: var(--text-color); }, mapped Tailwind gray.
 
-Five admin blades broken — three used @extends('layouts.app') + @section('content') (blank after the {{ $slot }} change), and two used routes that don't exist (posts.* without the admin. prefix). Fixed:
+Structural cleanup:
+
+Five admin blades broken (wrong layout + nonexistent routes) → converted to @extends('layouts.admin') with correct admin.* route names:
 
 admin/categories/edit.blade.php
 
-admin/posts/create.blade.php
+admin/posts/create.blade.php (was the pages create form)
 
 admin/posts/edit.blade.php
 
@@ -332,45 +340,43 @@ admin/posts/drafts.blade.php
 
 admin/posts/show.blade.php
 
-Post::$fillable had slug, but the table has no slug column — insert failed with SQLSTATE[HY000]: table posts has no column named slug. Removed slug from $fillable.
+Post::$fillable had slug before the column existed → column added via migration, all posts backfilled with unique slugs.
 
-Post.php got wiped by a broken PowerShell command (a mistake on my side — used $content before defining it). Restored without BOM.
+Post.php wiped by broken PowerShell → restored, no BOM.
+
+Ran the full task-priority list (rebuild+hash, deleted dead controllers, fixed CSS typo, converted categories index, added slug, wired Tailwind colors, extracted partial).
+
+Theme CSS extracted to partials/theme-vars.blade.php. First version had nested <style> tags causing raw CSS to render as text — fixed by removing the wrapper.
+
+Drafts route was missing (removed by earlier commit 19c3437 that replaced manual routes with Route::resource). Added back with correct ordering.
+
+Admin PostController::index() filtered to published-only → removed the filter so /admin/posts shows everything.
+
+Added PATCH admin/posts/{post}/toggle route + Publish/Unpublish button to the index. The togglePublish() method already existed.
+
+admin/categories/index.blade.php had an HTML typo: onsubmit attribute was missing a space before it in one form → fixed by rewriting the blade.
+
+Multiple BOM issues from Set-Content -Encoding UTF8 → fixed with WriteAllText(..., UTF8Encoding $false).
 
 11. Working conventions and gotchas
-File editing
-Three create.blade.php files exist (pages/, posts/, categories/). Same for edit.blade.php. VS Code tabs show only the filename. Easy to edit the wrong file. Use Ctrl+P and type part of the path, or expand the folder in the sidebar and click from inside it.
+PowerShell BOM trap
+Set-Content -Encoding UTF8 writes a byte-order mark (BOM) at the top of the file. For .php files this causes:
 
-VS Code saves have silently failed for this project — usually because the wrong file was open. Verify by running Get-Content <path> | Select-Object -First 5 after saving.
+Namespace declaration statement has to be the very first statement
 
-PowerShell
-Set-Content -Encoding UTF8 writes a BOM. For .php files this causes Namespace declaration statement has to be the very first statement errors.
-Use instead:
+For .blade.php, .js, .css, .json — safe with Set-Content.
+
+For .php — use this instead:
 
 powershell
 [System.IO.File]::WriteAllText($path, $content, (New-Object System.Text.UTF8Encoding $false))
-Blades/JSON/JS/CSS are fine with Set-Content.
-
-PowerShell here-strings (@' ... '@) are fragile with spread syntax (...). Spread is dropped silently. Avoid it in files written this way.
-
-Always add a verification step to file-writing commands. End with:
+Or for line-based edits:
 
 powershell
-Write-Host "Written. Size: $((Get-Item $path).Length) bytes"
-Verifying changes took
-No output = nothing found. Select-String returning nothing means the pattern isn't there — could be because the fix worked or the file didn't change.
+(Get-Content $path) -replace 'old', 'new' | Out-File $path -Encoding utf8NoBOM
+(utf8NoBOM requires PowerShell 6+.)
 
-Compiled views hide blade changes. After editing a blade:
-
-powershell
-php artisan view:clear
-If the change still doesn't appear:
-
-powershell
-Remove-Item -Recurse -Force storage\framework\views\* -ErrorAction SilentlyContinue
-php artisan optimize:clear
-Blank page debugging: View Page Source (Ctrl+U) first. php artisan serve logs may show nothing if PHP dies before Laravel's logger initializes. The service terminal itself prints the request line.
-
-BOM check for app/
+Verifying no BOM in app/
 powershell
 Get-ChildItem -Path app -Recurse -Filter *.php | ForEach-Object {
     $bytes = [System.IO.File]::ReadAllBytes($_.FullName)
@@ -380,27 +386,67 @@ Get-ChildItem -Path app -Recurse -Filter *.php | ForEach-Object {
 }
 Empty output = clean.
 
+Verify file was written
+Always add a size or content check at the end of a file-writing command:
+
+powershell
+Write-Host "Written. Size: $((Get-Item $path).Length) bytes"
+Because Set-Content on an empty $content writes zero bytes and reports no error.
+
+Layout rule
+@extends('layouts.admin') + @section('content') → admin pages
+
+<x-app-layout> + <x-slot name="header"> → public pages
+
+@extends('layouts.app') + @section('content') → does not work (no @yield('content') in that layout)
+
+Blade cache
+After editing a blade:
+
+powershell
+php artisan view:clear
+If changes still don't appear:
+
+powershell
+Remove-Item -Recurse -Force storage\framework\views\* -ErrorAction SilentlyContinue
+php artisan optimize:clear
+Server restart
+php artisan serve (PHP's built-in server) caches loaded controller classes. After editing a controller, restart the server. Blades don't need this.
+
+File naming trap
+Three create.blade.php files exist (pages/, posts/, categories/). Same for edit.blade.php. VS Code tabs show only the filename. Use Ctrl+P and type part of the path, or expand the folder and click from inside it.
+
+Debugging blank pages
+View Page Source (Ctrl+U) first, before opening DevTools. Laravel fatals show as empty HTML with no console error. The php artisan serve terminal prints the request line even when Laravel logs nothing.
+
 12. Known remaining issues
 Issue	Impact	Fix
-posts table has no slug column	Slugs computed on read only; renaming title changes URL	Add migration, add slug back to $fillable
-CKEditor CSS <link> hash hardcoded in 4 blades	Editor unstyled after every npm run build	Update hash, or switch to manifest-driven include
-admin/categories/index.blade.php still uses <x-app-layout>	Renders Breeze-styled table instead of admin chrome	Convert to @extends('layouts.admin')
-Admin\PageController, Admin\MenuItemController, AuthController are unrouted	Confusing; no functional impact	Delete
-admin/settings/index.blade.php has two CSS typos (roundedshadow-sm, rounded shadow)	Cosmetic	Add missing spaces
-primary_color, accent_color, border_radius, container_width are declarative only	Settings page saves them but nothing changes	Add Tailwind class→variable mappings or CSS rules
-layouts/app.blade.php and layouts/admin.blade.php duplicate the settings @php block and <style>	Maintenance burden	Extract to a partial or view composer
-13. Files modified or created (full list)
+CKEditor CSS <link> hash hardcoded in 4 blades	Editor unstyled after every npm run build	Update hash (script in §7) or switch to a manifest-driven include
+AppServiceProvider not reviewed	Unknown if there's dead code or hidden behavior	Share the file at start of a session
+bootstrap/app.php, config/app.php, migrations not reviewed	Unknown	Share when relevant
+admin/categories/create.blade.php not touched	May still use <x-app-layout> or wrong routes	Check if it renders correctly
+admin/menu/index.blade.php uses @extends('layouts.admin') but was not reviewed for other issues	Unknown	Review when convenient
+admin/posts/drafts.blade.php exists and is routed, but /admin/posts now shows drafts too	Redundant	Either delete drafts.blade.php and its route, or keep as a filtered view
+admin/settings/index.blade.php still references settings[container_width] and settings[border_radius] but they don't apply anywhere	Settings saved but no visual effect	Wire them up, or remove from the form
+Post::publicShow() scans all posts in PHP (not a where('slug', ...) query)	Slow with many posts	Change to Post::where('slug', $slug)->where('is_published', true)->firstOrFail()
+13. Files modified or created across the whole project
 Created:
 
 resources/js/ckeditor-init.js
 
+resources/views/partials/theme-vars.blade.php
+
 Modified:
 
-vite.config.js
-
-package.json, package-lock.json (via npm)
+vite.config.js, package.json, package-lock.json
 
 tailwind.config.js
+
+routes/web.php
+
+app/Http/Controllers/PostController.php
+
+app/Models/Post.php
 
 resources/views/layouts/admin.blade.php
 
@@ -414,39 +460,49 @@ resources/views/admin/posts/create.blade.php
 
 resources/views/admin/posts/edit.blade.php
 
+resources/views/admin/posts/index.blade.php
+
 resources/views/admin/posts/drafts.blade.php
 
 resources/views/admin/posts/show.blade.php
 
-resources/views/admin/posts/index.blade.php
+resources/views/admin/categories/index.blade.php
 
 resources/views/admin/categories/edit.blade.php
 
-app/Models/Post.php
+resources/views/admin/settings/index.blade.php (CSS typo)
 
 Deleted:
 
 public/js/ckeditor-init.js (obsolete)
 
+app/Http/Controllers/AuthController.php (dead)
+
+app/Http/Controllers/Admin/PageController.php (dead)
+
+app/Http/Controllers/Admin/MenuItemController.php (dead)
+
+Database:
+
+One migration run: added slug column to posts (unique, nullable).
+
+All existing posts backfilled with slugs.
+
 Untouched:
 
-Any migration, seeder, model other than Post, all app/Http/Controllers/Auth/*, all Breeze components/*, AppServiceProvider, bootstrap/app.php, config/*.
+All other models, all Breeze controllers, all Breeze components, AppServiceProvider, bootstrap/app.php, config/*, migrations (other than the one created here).
 
-14. Task priorities if work continues
-Ranked by ease × usefulness.
+14. Where to start a future session
+If the app is working and you're just extending it: read the file you're about to modify, then modify it. Don't assume the pattern from another file.
 
-Run npm run build and update the CKEditor CSS hash in four blades (mechanical, ~2 minutes).
+If something is broken: paste the exact error, the file it points to, and any log output. That's usually enough to diagnose.
 
-Delete the three dead controllers (mechanical, ~1 minute).
+If you want to keep cleaning: the table in §12 lists what's left. None of it is urgent.
 
-Fix the two CSS typos in admin/settings/index.blade.php (mechanical, 30 seconds).
+If you want to change how the theme system works: the whole flow is documented in §8. The three pieces are the settings page, partials/theme-vars.blade.php, and tailwind.config.js.
 
-Convert admin/categories/index.blade.php to @extends('layouts.admin') for visual consistency.
+15. If you start a new chat
+Paste this report at the top. Then, if you're asking about a specific file, paste that file too. The combination gives the AI the project context and the specific content it needs to reason about — which is far better than asking it to guess from a description.
 
-Add a slug migration for posts, put slug back in Post::$fillable — enables stable URLs.
+Also consider turning on any "reasoning" or "deep thinking" mode the interface offers. The project has enough internal contradictions that careful reasoning beats fast pattern-matching.
 
-Wire primary_color / accent_color / border_radius to elements — add Tailwind class→CSS-variable mappings or explicit CSS rules.
-
-Extract the settings @php block and CSS variables into a shared partial.
-
-None are critical. The app works as-is.
