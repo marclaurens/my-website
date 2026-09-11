@@ -4,8 +4,20 @@ import laravel from 'laravel-vite-plugin';
 export default defineConfig({
     plugins: [
         laravel({
-            input: ['resources/css/app.css', 'resources/js/app.js'],
+            input: [
+                'resources/css/app.css',
+                'resources/js/app.js',
+                'resources/js/ckeditor-init.js'
+            ],
             refresh: true,
         }),
     ],
+    optimizeDeps: {
+        include: ['ckeditor5'],
+    },
+    build: {
+        commonjsOptions: {
+            include: [/ckeditor5/, /node_modules/],
+        },
+    },
 });

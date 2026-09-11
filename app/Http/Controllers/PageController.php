@@ -33,9 +33,9 @@ class PageController extends Controller
         $validated['is_published'] = $request->has('is_published');
         $validated['is_admin_only'] = $request->has('is_admin_only');
 
-        Page::create($validated);
+        $page = Page::create($validated);
 
-        return redirect()->route('admin.pages.index')->with('success', 'Page created successfully.');
+        return redirect()->route('pages.show', $page->slug)->with('success', 'Page created successfully.');
     }
 
     public function edit(Page $page)
@@ -59,7 +59,7 @@ class PageController extends Controller
 
         $page->update($validated);
 
-        return redirect()->route('admin.pages.index')->with('success', 'Page updated successfully.');
+        return redirect()->route('pages.show', $page->slug)->with('success', 'Page updated successfully.');
     }
 
     public function destroy(Page $page)

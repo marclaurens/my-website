@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.admin')
 
 @section('content')
 <div class="container mx-auto py-6">
@@ -36,19 +36,22 @@
         <a href="{{ route('admin.pages.index') }}" class="ml-2 text-gray-600 hover:underline">Cancel</a>
     </form>
 </div>
-
-<script src="https://cdn.ckeditor.com/ckeditor5/39.0.1/classic/ckeditor.js"></script>
-<script>
-    ClassicEditor
-        .create(document.querySelector('#content'), {
-            htmlSupport: {
-                allow: [{ name: /.*/, attributes: true, classes: true, styles: true }]
-            },
-            toolbar: [
-                'heading', '|', 'bold', 'italic', 'link', 'bulletedList', 'numberedList', 
-                '|', 'sourceEditing', 'blockQuote', 'insertTable', 'undo', 'redo'
-            ]
-        })
-        .catch(error => console.error(error));
-</script>
 @endsection
+
+@push('scripts')
+<link rel="stylesheet" href="/build/assets/ckeditor-init-BA9sK04e.css">
+<script type="module">
+    import('{{ Vite::asset("resources/js/ckeditor-init.js") }}').then(() => {
+        window.initCkEditor('#content', {
+            simpleUpload: {
+                uploadUrl: '{{ route("admin.posts.upload_image") }}',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                }
+            }
+        }).catch(err => console.error('[CKEditor] init failed', err));
+    }).catch(err => console.error('[CKEditor] module load failed', err));
+</script>
+@endpush
+
+

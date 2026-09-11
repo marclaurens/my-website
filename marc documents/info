@@ -8,6 +8,8 @@ Core Development Servers
 
 php artisan serve — Starts the local PHP development server (usually at [http://127.0.0.1:8000](http://127.0.0.1:8000)). Run this in one terminal window to view your site.
 
+php artisan serve --port=8080
+
 npm run dev — Starts the Vite development server to compile Tailwind CSS and JavaScript in real-time. Keep this running alongside artisan serve while coding locally.
 
 npm run build — Bundles, compresses, and compiles all CSS and JS assets into static files. Run this once when deploying your project to a live production server.
