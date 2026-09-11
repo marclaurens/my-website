@@ -14,7 +14,7 @@
             <div class="flex">
                 <!-- Logo / Site Name -->
                 <div class="shrink-0 flex items-center">
-                    <a href="<?php echo e(route('dashboard')); ?>" class="font-bold text-xl text-gray-800 hover:text-gray-900 flex items-center">
+                    <a href="<?php echo e(url('/')); ?>" class="font-bold text-xl text-gray-800 hover:text-gray-900 flex items-center">
                         <?php echo e($globalSettings['site_name'] ?? config('app.name', 'Laravel')); ?>
 
                     </a>
@@ -538,4 +538,5 @@
             <?php endif; ?>
         </div>
     </div>
-</nav><?php /**PATH C:\Users\marcl\Desktop\my-website\resources\views/layouts/navigation.blade.php ENDPATH**/ ?>
+</nav>
+<?php /**PATH C:\Users\marcl\Desktop\my-website\resources\views/layouts/navigation.blade.php ENDPATH**/ ?>

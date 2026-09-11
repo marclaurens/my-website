@@ -14,7 +14,7 @@
             <div class="flex">
                 <!-- Logo / Site Name -->
                 <div class="shrink-0 flex items-center">
-                    <a href="{{ route('dashboard') }}" class="font-bold text-xl text-gray-800 hover:text-gray-900 flex items-center">
+                    <a href="{{ url('/') }}" class="font-bold text-xl text-gray-800 hover:text-gray-900 flex items-center">
                         {{ $globalSettings['site_name'] ?? config('app.name', 'Laravel') }}
                     </a>
                 </div>
