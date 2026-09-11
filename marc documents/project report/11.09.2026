@@ -330,6 +330,52 @@ Frontend rendering:
 
 - Deleted the junk migration 2026_09_11_2i49_add_slug_to_posts_table.php
 
+11. Everything fixed across the project
+
+Earlier sessions (from Revision 1):
+- invalid-license-key with CDN trial key → moved to self-hosted GPL build
+- window.initCkEditor is not a function → replaced @vite module tag with inline dynamic import()
+- Stale compiled views → removed storage\framework\views\*
+- Old UMD code still in four editor blades → overwritten
+- layouts/app.blade.php referenced a nonexistent /js/ckeditor-init.js → removed
+- Blank <x-app-layout> pages → @yield('content') changed to {{ $slot }}, added @isset($header)
+- CKEditor icons huge → added <link> on the CSS chunk in four blades
+- $accentColor undefined → stale compiled view
+- admin/posts/edit.blade.php loaded the pages edit form → overwritten
+- Global text color setting did nothing → added body { color: var(--text-color); }, mapped Tailwind gray
+- Five admin blades broken (wrong layout + nonexistent routes) → converted to @extends('layouts.admin') with correct admin.* route names
+- Post::$fillable had slug before the column existed → column added via migration, all posts backfilled
+- Post.php wiped by broken PowerShell → restored, no BOM
+- Theme CSS extracted to partials/theme-vars.blade.php; first version had nested <style> tags causing raw CSS to render as text
+- Drafts route was missing → added back with correct ordering
+- Admin PostController::index() filtered to published-only → removed
+- PATCH admin/posts/{post}/toggle route + Publish/Unpublish button added
+- admin/categories/index.blade.php HTML typo → fixed
+- Multiple BOM issues from Set-Content -Encoding UTF8 → fixed with WriteAllText(..., UTF8Encoding $false)
+
+This session (Revision 2):
+Menu feature:
+- Added parent_id migration, model relations, buildTree, descendantIds
+- Rewrote MenuItemController (index with flatten, store/update/destroy with parent support, cycle prevention)
+- Rewrote AppServiceProvider to build the tree and filter admin-only items before building
+- Created partials/menu-item.blade.php, menu-item-dropdown.blade.php, menu-item-mobile.blade.php
+- Rewrote layouts/navigation.blade.php to use the partials (both desktop and mobile)
+- Rewrote admin/menu/index.blade.php — Parent select on add form, indented list, inline expandable edit, descendant-aware Parent select in each edit form
+- Fixed a subtle vertical alignment issue in the top-level nav item: outer wrapper now has `relative h-full flex items-center`; chevron button lost pt-1
+- Deleted the junk migration 2026_09_11_2i49_add_slug_to_posts_table.php
+
+Layout consolidation:
+- Added layouts/base.blade.php as the single source of truth for the HTML shell
+- Added app/View/Components/BaseLayout.php and AdminLayout.php component classes
+- Rewrote layouts/app.blade.php and layouts/admin.blade.php as 3-line wrappers around base
+- Migrated all 13 admin blades from @extends('layouts.admin') + @section('content') to <x-admin-layout>
+- Fixed: @push('scripts') blocks in the four CKEditor blades were outside </x-admin-layout>, so @stack('scripts') never received them. Moved inside the component.
+- Fixed: <title> tag no longer says "Admin Panel" on public pages (was hardcoded in both old layouts)
+- Fixed: admin/categories/create.blade.php was using <x-app-layout> (public chrome on an admin page) — now uses <x-admin-layout>
+
+Site-name link:
+- Pointed the site-name link at url('/') instead of route('dashboard'). Previously, logged-out visitors clicking the site name on any public page were redirected to /login, because /dashboard is behind auth middleware and immediately redirects to admin.pages.index.
+
 12. Working conventions and gotchas
 
 PowerShell BOM trap
@@ -411,13 +457,12 @@ PostController::publicShow() scans all posts in PHP                     Slow wit
 admin/settings/index.blade.php has container_width and border_radius    Settings saved but no visual effect                             Wire them up, or remove from the form
 admin/posts/drafts.blade.php exists and is routed, but /admin/posts     Redundant                                                       Either delete drafts.blade.php and its route, or keep as a filtered view
   now shows drafts too
-admin/categories/create.blade.php not touched                           May still use <x-app-layout> or wrong routes                    Check if it renders correctly
 admin/menu/index.blade.php — validation errors don't re-open the        User has to click Edit again after a rejected save              Small: use old('parent_id') or a session flash to re-open
   offending row after a failed update
 MenuItem — item with no url, no page, and no children renders as         Dead link in nav                                                Hide such items, or flag in admin
   <a href="#">
 MenuItem — "order" is global, not per-sibling, in buildTree's sort      Reordering within a group works because children() re-sorts     Fine as-is; note if it ever misbehaves
-bootstrap/app.php, config/app.php, remaining migrations not reviewed    Unknown                                                         Share when relevant
+bootstrap/app.php, config/app.php, remaining migrations not reviewed    Unknown                                                         Share when relevant                                                   Share when relevant
 
 14. Files modified or created across the whole project
 
